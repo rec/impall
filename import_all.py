@@ -12,7 +12,7 @@ class TestCase(unittest.TestCase):
     def test_all(self):
         paths = self.PROJECT_PATHS or self._guess_paths()
         with warning_context(self.WARNINGS_ACTION):
-            errors = list(import_all(*paths))
+            errors = import_all(*paths)
         failing_modules = tuple(module for module, ex in errors)
         self.assertEqual(failing_modules, self.FAILING_MODULES)
 
@@ -31,7 +31,7 @@ def import_all(*paths):
     yields an iterator of (module, exception) for each module that failed
     to import
     """
-    return attempt_all(importlib.import_module, _all_imports(paths))
+    return sorted(attempt_all(importlib.import_module, _all_imports(paths)))
 
 
 def attempt_all(function, items):
