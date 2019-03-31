@@ -1,84 +1,127 @@
-import importlib, os, warnings
-__all__ = 'import_all', 'python_root'
-
+import contextlib, importlib, inspect, os, sys, unittest, warnings
 
 __author__ = "Tom Ritchford <tom@swirly.com>"
 __version__ = "0.9.0"
 
 
-def import_all(root, ignore_warnings=False):
+class TestCase(unittest.TestCase):
+    WARNINGS_ACTION = 'error'
+    PROJECT_PATHS = None
+    FAILING_MODULES = ()
+
+    def test_all(self):
+        paths = self.PROJECT_PATHS or self._guess_paths()
+        with warning_context(self.WARNINGS_ACTION):
+            errors = list(import_all(*paths))
+        failing_modules = tuple(module for module, ex in errors)
+        self.assertEqual(failing_modules, self.FAILING_MODULES)
+
+    def _guess_paths(self):
+        sourcefile = inspect.getsourcefile(self.__class__)
+        path = python_path(os.path.dirname(sourcefile))
+
+        for c in os.listdir(path):
+            if has_init_file(c) and not c.startswith('__'):
+                yield c
+
+
+def import_all(*paths):
     """
-    Try to import all .py files and directories below `root` and return a list
-    of successes and a list of failures.
-
-    Arguments:
-      root:
-        Root directory for the top-level Python module
-
-      ignore_warnings:
-          If `ignore_warnings` is True, ignore all warnings.
-          If `ignore_warnings` is False, turn warnings into errors.
-          Otherwise, turn warnings into errors unless the module
-          name is in `ignore_warnings`
-
+    Try to import all .py files and directories below each path in `paths`;
+    yields an iterator of (module, exception) for each module that failed
+    to import
     """
-    successes, failures = [], []
+    return attempt_all(importlib.import_module, _all_imports(paths))
 
-    for name in _all_imports(root):
-        warnings.simplefilter('ignore' if name in ignore_warnings else 'error')
 
+def attempt_all(function, items):
+    """
+    Call `function` on each item in `items`, catching any exceptions.
+
+    Yields an iterator of (item, exception) for each item that raised an
+    exception.
+    """
+    for i in items:
         try:
-            importlib.import_module(name)
+            function(i)
         except Exception as e:
-            failures.append((name, e))
-        else:
-            successes.append(name)
+            yield i, e
 
+
+@contextlib.contextmanager
+def warning_context(action):
+    """A context manager to set `warnings.simplefilter` within a scope"""
+    warnings.simplefilter(action)
+    try:
+        yield
+    finally:
         warnings.filters.pop(0)
 
-    return successes, failures
+
+@contextlib.contextmanager
+def sys_path_context(path):
+    """A context manager to prepend to `sys.path` within a scope"""
+    sys.path.insert(0, path)
+    try:
+        yield
+    finally:
+        try:
+            sys.path.remove(path)
+        except:
+            pass
 
 
-def python_root(path):
+def split_all(path):
+    """Use os.path.split repeatedly to split a path into components"""
+    old_path = None
+    components = []
+
+    while path != old_path:
+        (path, tail), old_path = os.path.split(path), path
+        tail and components.insert(0, tail)
+
+    old_path and components.insert(0, old_path)
+    return components
+
+
+def python_path(path):
     """
-    Return the lowest directory containing path that does not contain
+    Find the lowest directory in `path` and its parents that does not contain
     an __init__.py file
     """
 
-    while os.path.exists(os.path.join(path, '__init__.py')):
+    while has_init_file(path):
         path = os.path.dirname(path)
 
     return path
 
 
-def _split_all(path):
-    result = []
-    old_path = None
-    while path != old_path:
-        (path, tail), old_path = os.path.split(path), path
-        tail and result.insert(0, tail)
-    return result
+def has_init_file(path):
+    """Return True if `path` is a directory containing an __init__.py file"""
+    return os.path.exists(os.path.join(path, '__init__.py'))
 
 
-def _all_imports(path):
-    root = python_root(path)
-    sys.path.insert(0, root)
+def walk_code(path, omit_prefixes=('__', '.')):
+    """
+    os.walk through subdirectories and files, ignoring any that begin
+    with any of the strings in `omit_prefixes`
+    """
+    for directory, sub_dirs, files in os.walk(path):
+        if any(directory.startswith(p) for p in omit_prefixes):
+            sub_dirs.clear()
+        else:
+            yield directory, files
 
-    try:
-        for directory, sub_folders, files in os.walk(path):
-            if os.path.basename(directory).startswith('__'):
-                continue
 
-            relative = os.path.relpath(directory, root)
-            root_import = '.'.join(_split_all(relative))
+def _all_imports(paths):
+    for path in paths:
+        root = python_path(path)
+        with sys_path_context(root):
+            for directory, files in walk_code(path):
+                rel = os.path.relpath(directory, root)
+                module = '.'.join(split_all(rel))
+                yield module
 
-            yield root_import
-
-            for f in files:
-                if f.endswith('.py') and not f.startswith('__'):
-                    yield '%s.%s' % (root_import, f[:-3])
-    finally:
-        try:
-            sys.path.remove(root)
-        except:
-            pass
+                for f in files:
+                    if f.endswith('.py') and not f.startswith('__'):
+                        yield '%s.%s' % (module, f[:-3])
