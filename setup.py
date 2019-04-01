@@ -14,16 +14,17 @@ _classifiers = [
 if __name__ == '__main__':
     from setuptools import setup
 
-    setup(name='import_all',
-          version=import_all.__version__,
-          author='Tom Ritchford',
-          author_email='tom@swirly.com',
-          url='https://github.com/timedata-org/import_all',
-          tests_require=['pytest'],
-          py_modules=['import_all'],
-          description='Try to import all modules below a given root',
-          long_description=open('README.rst').read(),
-          license='MIT',
-          classifiers=_classifiers,
-          keywords=['testing', 'importing'],
-          )
+    setup(
+        name='import_all',
+        version=import_all.__version__,
+        author='Tom Ritchford',
+        author_email='tom@swirly.com',
+        url='https://github.com/rec/import_all',
+        tests_require=['pytest'],
+        py_modules=['import_all'],
+        description='Try to import all modules below a given root',
+        long_description=open('README.rst').read(),
+        license='MIT',
+        classifiers=_classifiers,
+        keywords=['testing', 'importing'],
+    )
