@@ -1,7 +1,7 @@
 import contextlib, importlib, inspect, os, sys, unittest, warnings
 
 __author__ = "Tom Ritchford <tom@swirly.com>"
-__version__ = "0.9.1"
+__version__ = "0.9.2"
 
 
 class TestCase(unittest.TestCase):
