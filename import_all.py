@@ -3,11 +3,26 @@ import contextlib, importlib, inspect, os, sys, unittest, warnings
 __author__ = "Tom Ritchford <tom@swirly.com>"
 __version__ = "0.9.2"
 
+"""
+A unit test that imports every file and module in a Python repository,
+optionally treating warnings as errors.
+"""
+
 
 class TestCase(unittest.TestCase):
+    """Base test that imports all of a repository"""
+
     WARNINGS_ACTION = 'error'
-    PROJECT_PATHS = None
+    """`warnings.simplefilter` is set to this while testing"""
+
+    PROJECT_PATHS = ()
+    """A sequence of path roots that will be recusively loaded.
+       If empty, guess the project paths from the root Python directory
+       that containsthe definition of the class.
+    """
+
     FAILING_MODULES = ()
+    """Modules that are expected to fail"""
 
     def test_all(self):
         paths = self.PROJECT_PATHS or self._guess_paths()
@@ -28,8 +43,8 @@ class TestCase(unittest.TestCase):
 def import_all(*paths):
     """
     Try to import all .py files and directories below each path in `paths`;
-    yields an iterator of (module, exception) for each module that failed
-    to import
+    returns a sorted list of (module, exception) for each module that failed
+    to import.
     """
     return sorted(attempt_all(importlib.import_module, _all_imports(paths)))
 
@@ -68,7 +83,7 @@ def sys_path_context(path):
         try:
             sys.path.remove(path)
         except:
-            pass
+            pass  # Someone else removed it - not an issue.
 
 
 def split_all(path):
