@@ -18,4 +18,4 @@ install:
 
 script:
 - flake8
-- pytest test
+- pytest
