@@ -1,4 +1,10 @@
-import contextlib, importlib, inspect, os, sys, unittest, warnings
+import contextlib
+import importlib
+import inspect
+import os
+import sys
+import unittest
+import warnings
 
 __author__ = "Tom Ritchford <tom@swirly.com>"
 __version__ = "0.9.2"
@@ -82,7 +88,7 @@ def sys_path_context(path):
     finally:
         try:
             sys.path.remove(path)
-        except:
+        except Exception:
             pass  # Someone else removed it - not an issue.
 
 
