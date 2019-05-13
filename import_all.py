@@ -2,40 +2,69 @@ import contextlib
 import importlib
 import inspect
 import os
+import re
 import sys
 import unittest
 import warnings
 
-__author__ = "Tom Ritchford <tom@swirly.com>"
-__version__ = "0.9.2"
+__author__ = 'Tom Ritchford <tom@swirly.com>'
+__version__ = '0.9.2'
+
 
 """
-A unit test that imports every file and module in a Python repository,
-optionally treating warnings as errors.
+    A unit test that imports every module in a Python repository,
+    treating warnings as errors by default.
 """
 
 
 class TestCase(unittest.TestCase):
-    """Base test that imports all of a repository"""
+    """The base test, which imports every Python module in a directory"""
 
     WARNINGS_ACTION = 'error'
-    """`warnings.simplefilter` is set to this while testing"""
+    """What action to take if a Python warning occurs.
+
+       `warnings.simplefilter` will be set to this value while testing
+    """
 
     PROJECT_PATHS = ()
     """A sequence of path roots that will be recusively loaded.
+
        If empty, guess the project paths from the root Python directory
        that containsthe definition of the class.
     """
 
-    FAILING_MODULES = ()
-    """Modules that are expected to fail"""
+    INCLUDE = None
+    """A list or tuple of regular expressions, or None.
+
+       If non-None, only modules whose full pathname matches one of these
+       regular expressions will be imported. (This means that setting
+       INCLUDE = () will effectively disable this test.)
+    """
+
+    EXCLUDE = None
+    """A list or tuple of regular expressions, or None.
+
+       If non-empty, modules whose name matches any of these regular
+       expressions will not be imported.
+    """
+
+    EXPECTED_TO_FAIL = ()
+    """A list of specific module names that are expected to fail.
+
+       This differs from EXCLUDE because those modules aren't imported at all,
+       but the modules in EXPECTED_TO_FAIL must exist, are imported, and then
+       must fail when imported.
+    """
 
     def test_all(self):
         paths = self.PROJECT_PATHS or self._guess_paths()
         with warning_context(self.WARNINGS_ACTION):
-            errors = import_all(*paths)
-        failing_modules = tuple(module for module, ex in errors)
-        self.assertEqual(failing_modules, self.FAILING_MODULES)
+            _, failures = import_all(
+                *paths, include=self.INCLUDE, exclude=self.EXCLUDE
+            )
+
+        failing_modules = [module for module, ex in failures]
+        self.assertEqual(failing_modules, sorted(self.EXPECTED_TO_FAIL))
 
     def _guess_paths(self):
         sourcefile = inspect.getsourcefile(self.__class__)
@@ -46,27 +75,26 @@ class TestCase(unittest.TestCase):
                 yield c
 
 
-def import_all(*paths):
+def import_all(*paths, include=None, exclude=None):
     """
     Try to import all .py files and directories below each path in `paths`;
-    returns a sorted list of (module, exception) for each module that failed
-    to import.
-    """
-    return sorted(attempt_all(importlib.import_module, _all_imports(paths)))
 
+    Returns a pair of sorted lists `(successes, failures)`.
+       `successes` is a list of module names that successfully imported
 
-def attempt_all(function, items):
+       `failures` is a list of (module name, exception) pairs for modules that
+        failed to import
     """
-    Call `function` on each item in `items`, catching any exceptions.
-
-    Yields an iterator of (item, exception) for each item that raised an
-    exception.
-    """
-    for i in items:
+    imports = sorted(_all_imports(paths))
+    successes, failures = [], []
+    for module in _filter_imports(imports, include, exclude):
         try:
-            function(i)
+            importlib.import_module(module)
+            successes.append(module)
         except Exception as e:
-            yield i, e
+            failures.append((module, e))
+
+    return successes, failures
 
 
 @contextlib.contextmanager
@@ -146,3 +174,28 @@ def _all_imports(paths):
                 for f in files:
                     if f.endswith('.py') and not f.startswith('__'):
                         yield '%s.%s' % (module, f[:-3])
+
+
+def _filter_imports(imports, include, exclude):
+    include_re = include and [re.compile(i) for i in include]
+    exclude_re = exclude and [re.compile(i) for i in exclude]
+
+    for i in imports:
+        if exclude_re is not None and any(r.match(i) for r in exclude_re):
+            continue
+        if include_re is not None and not any(r.match(i) for r in include_re):
+            continue
+        yield i
+
+
+if __name__ == '__main__':
+    args = sys.argv[1:] or [os.getcwd()]
+    successes, failures = import_all(*args)
+    if successes:
+        print('Successes', *successes, sep='\n  ')
+        print()
+
+    if failures:
+        failures = ['%s (%s)' % (m, e) for (m, e) in failures]
+        print('Failures', *failures, sep='\n  ')
+        print()
