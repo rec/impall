@@ -10,35 +10,34 @@ import warnings
 __author__ = 'Tom Ritchford <tom@swirly.com>'
 __version__ = '0.9.2'
 
-
 """
     A unit test that imports every module in a Python repository,
-    treating warnings as errors by default.
-"""
+    treating warnings as errors by default."""
 
 
 class TestCase(unittest.TestCase):
-    """The base test, which imports every Python module in a directory"""
+    """Import every Python module or file in a hierarchy and fail on errors.
+    """
+
+    PROJECT_PATHS = None
+    """A sequence of path roots that will be recusively loaded.
+
+       If empty, guess the project paths from the root Python directory
+       that contains the definition of the class.
+    """
 
     WARNINGS_ACTION = 'error'
     """What action to take if a Python warning occurs.
 
-       `warnings.simplefilter` will be set to this value while testing
-    """
-
-    PROJECT_PATHS = ()
-    """A sequence of path roots that will be recusively loaded.
-
-       If empty, guess the project paths from the root Python directory
-       that containsthe definition of the class.
+       `warnings.simplefilter` will be set to this value while testing: see
+       https://docs.python.org/3/library/warnings.html#the-warnings-filter
     """
 
     INCLUDE = None
     """A list or tuple of regular expressions, or None.
 
-       If non-None, only modules whose full pathname matches one of these
-       regular expressions will be imported. (This means that setting
-       INCLUDE = () will effectively disable this test.)
+       If non-empty, only modules whose full pathname matches one of these
+       regular expressions will be imported.
     """
 
     EXCLUDE = None
@@ -57,14 +56,16 @@ class TestCase(unittest.TestCase):
     """
 
     def test_all(self):
-        paths = self.PROJECT_PATHS or self._guess_paths()
-        with warning_context(self.WARNINGS_ACTION):
-            _, failures = import_all(
-                *paths, include=self.INCLUDE, exclude=self.EXCLUDE
-            )
-
+        successes, failures = self.import_all()
+        self.assertTrue(successes or failures)
         failing_modules = [module for module, ex in failures]
-        self.assertEqual(failing_modules, sorted(self.EXPECTED_TO_FAIL))
+        self.assertEqual(failing_modules, sorted(_list(self.EXPECTED_TO_FAIL)))
+
+    def import_all(self):
+        p = _list(self.PROJECT_PATHS or self._guess_paths())
+
+        with warning_context(self.WARNINGS_ACTION):
+            return import_all(*p, include=self.INCLUDE, exclude=self.EXCLUDE)
 
     def _guess_paths(self):
         sourcefile = inspect.getsourcefile(self.__class__)
@@ -79,13 +80,19 @@ def import_all(*paths, include=None, exclude=None):
     """
     Try to import all .py files and directories below each path in `paths`;
 
-    Returns a pair of sorted lists `(successes, failures)`.
+    Returns a pair of sorted lists `successes, failures`.
        `successes` is a list of module names that successfully imported
 
        `failures` is a list of (module name, exception) pairs for modules that
         failed to import
+
+    If `include` is If non-empty, only modules whose full pathname matches
+    one of these regular expressions will be imported.
+
+    If 'exclude` is non-empty, modules whose name matches any of these
+    regular expressions will not be imported.
     """
-    imports = sorted(_all_imports(paths))
+    imports = _all_imports(paths)
     successes, failures = [], []
     for module in _filter_imports(imports, include, exclude):
         try:
@@ -104,7 +111,10 @@ def warning_context(action):
     try:
         yield
     finally:
-        warnings.filters.pop(0)
+        try:
+            warnings.filters.pop(0)
+        except Exception:
+            pass
 
 
 @contextlib.contextmanager
@@ -117,7 +127,7 @@ def sys_path_context(path):
         try:
             sys.path.remove(path)
         except Exception:
-            pass  # Someone else removed it - not an issue.
+            pass
 
 
 def split_all(path):
@@ -138,7 +148,6 @@ def python_path(path):
     Find the lowest directory in `path` and its parents that does not contain
     an __init__.py file
     """
-
     while has_init_file(path):
         path = os.path.dirname(path)
 
@@ -156,7 +165,9 @@ def walk_code(path, omit_prefixes=('__', '.')):
     with any of the strings in `omit_prefixes`
     """
     for directory, sub_dirs, files in os.walk(path):
-        if any(directory.startswith(p) for p in omit_prefixes):
+        if (directory != path and not has_init_file(directory)) or (
+            any(directory.startswith(p) for p in omit_prefixes)
+        ):
             sub_dirs.clear()
         else:
             yield directory, files
@@ -177,8 +188,8 @@ def _all_imports(paths):
 
 
 def _filter_imports(imports, include, exclude):
-    include_re = include and [re.compile(i) for i in include]
-    exclude_re = exclude and [re.compile(i) for i in exclude]
+    include_re = include and [re.compile(i) for i in _list(include)]
+    exclude_re = exclude and [re.compile(i) for i in _list(exclude)]
 
     for i in imports:
         if exclude_re is not None and any(r.match(i) for r in exclude_re):
@@ -188,14 +199,21 @@ def _filter_imports(imports, include, exclude):
         yield i
 
 
-if __name__ == '__main__':
-    args = sys.argv[1:] or [os.getcwd()]
+def _list(s):
+    return [s] if isinstance(s, str) else s
+
+
+def report(*args, file=sys.stdout):
     successes, failures = import_all(*args)
     if successes:
-        print('Successes', *successes, sep='\n  ')
-        print()
+        print('Successes', *successes, sep='\n  ', file=file)
+        print(file=file)
 
     if failures:
         failures = ['%s (%s)' % (m, e) for (m, e) in failures]
-        print('Failures', *failures, sep='\n  ')
-        print()
+        print('Failures', *failures, sep='\n  ', file=file)
+        print(file=file)
+
+
+if __name__ == '__main__':
+    args = sys.argv[1:] or [os.getcwd()]
