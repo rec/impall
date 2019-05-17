@@ -1,4 +1,3 @@
-import contextlib
 import importlib
 import inspect
 import os
@@ -58,17 +57,24 @@ class TestCase(unittest.TestCase):
     def test_all(self):
         successes, failures = self.import_all()
         self.assertTrue(successes or failures)
-        failing_modules = [module for module, ex in failures]
-        self.assertEqual(failing_modules, sorted(_list(self.EXPECTED_TO_FAIL)))
+        failed = []
+        for module, ex in failures:
+            if module not in self.EXPECTED_TO_FAIL:
+                failed.append(module)
+                print('Failed ' + module, ex, '', sep='\n')
+        self.assertEqual(failed, [])
 
     def import_all(self):
         p = _list(self.PROJECT_PATHS or self._guess_paths())
 
-        with warning_context(self.WARNINGS_ACTION):
+        warnings.simplefilter(self.WARNINGS_ACTION)
+        try:
             return import_all(*p, include=self.INCLUDE, exclude=self.EXCLUDE)
+        finally:
+            warnings.filters.pop(0)
 
     def _guess_paths(self):
-        sourcefile = inspect.getsourcefile(self.__class__)
+        sourcefile = inspect.getsourcefile(__class__)
         path = python_path(os.path.dirname(sourcefile))
 
         for c in os.listdir(path):
@@ -92,42 +98,44 @@ def import_all(*paths, include=None, exclude=None):
     If 'exclude` is non-empty, modules whose name matches any of these
     regular expressions will not be imported.
     """
-    imports = _all_imports(paths)
+    inc = include and [re.compile(i) for i in _list(include)]
+    exc = exclude and [re.compile(i) for i in _list(exclude)]
+
+    def accept(x):
+        return (exc is None or not any(r.match(x) for r in exc)) and (
+            inc is None or any(r.match(x) for r in inc)
+        )
+
     successes, failures = [], []
-    for module in _filter_imports(imports, include, exclude):
-        try:
-            importlib.import_module(module)
-            successes.append(module)
-        except Exception as e:
-            failures.append((module, e))
+    for module in _all_imports(paths):
+        if accept(module):
+            sys_modules = dict(sys.modules)
+            try:
+                importlib.import_module(module)
+                successes.append(module)
+            except Exception as e:
+                failures.append((module, e))
+            sys.modules = sys_modules
 
     return successes, failures
 
 
-@contextlib.contextmanager
-def warning_context(action):
-    """A context manager to set `warnings.simplefilter` within a scope"""
-    warnings.simplefilter(action)
-    try:
-        yield
-    finally:
+def _all_imports(paths):
+    for path in paths:
+        root = python_path(path)
+        sys_path = sys.path[:]
+        sys.path.insert(0, root)
         try:
-            warnings.filters.pop(0)
-        except Exception:
-            pass
+            for directory, files in walk_code(path):
+                rel = os.path.relpath(directory, root)
+                module = '.'.join(split_all(rel))
+                yield module
 
-
-@contextlib.contextmanager
-def sys_path_context(path):
-    """A context manager to prepend to `sys.path` within a scope"""
-    sys.path.insert(0, path)
-    try:
-        yield
-    finally:
-        try:
-            sys.path.remove(path)
-        except Exception:
-            pass
+                for f in files:
+                    if f.endswith('.py') and not f.startswith('__'):
+                        yield '%s.%s' % (module, f[:-3])
+        finally:
+            sys.path[:] = sys_path
 
 
 def split_all(path):
@@ -171,32 +179,6 @@ def walk_code(path, omit_prefixes=('__', '.')):
             sub_dirs.clear()
         else:
             yield directory, files
-
-
-def _all_imports(paths):
-    for path in paths:
-        root = python_path(path)
-        with sys_path_context(root):
-            for directory, files in walk_code(path):
-                rel = os.path.relpath(directory, root)
-                module = '.'.join(split_all(rel))
-                yield module
-
-                for f in files:
-                    if f.endswith('.py') and not f.startswith('__'):
-                        yield '%s.%s' % (module, f[:-3])
-
-
-def _filter_imports(imports, include, exclude):
-    include_re = include and [re.compile(i) for i in _list(include)]
-    exclude_re = exclude and [re.compile(i) for i in _list(exclude)]
-
-    for i in imports:
-        if exclude_re is not None and any(r.match(i) for r in exclude_re):
-            continue
-        if include_re is not None and not any(r.match(i) for r in include_re):
-            continue
-        yield i
 
 
 def _list(s):
