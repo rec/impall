@@ -32,6 +32,17 @@ class TestCase(unittest.TestCase):
        https://docs.python.org/3/library/warnings.html#the-warnings-filter
     """
 
+    ALL_SUBDIRECTORIES = False
+    """If True, search all subdirectories.
+       If False, stop recursion at subdirectories that do not contain
+       an __init__.py file.
+    """
+
+    SKIP_PREFIXES = '__', '.'
+    """Any directory which starts with any prefix in SKIP_PREFIXES and its
+       subdirectories are ignored.
+    """
+
     INCLUDE = None
     """A list or tuple of regular expressions, or None.
 
@@ -54,24 +65,50 @@ class TestCase(unittest.TestCase):
        must fail when imported.
     """
 
+    def __init__(self, *args, **kwds):
+        super().__init__(*args, **kwds)
+        self._inc = [re.compile(i) for i in _list(self.INCLUDE)]
+        self._exc = [re.compile(i) for i in _list(self.EXCLUDE)]
+
+    def _accept(self, x):
+        print(
+            'accept',
+            not any(i.match(x) for i in self._exc),
+            not (self._inc and any(i.match(x) for i in self._inc)),
+        )
+        return not any(i.match(x) for i in self._exc) and (
+            not self._inc or any(i.match(x) for i in self._inc)
+        )
+
     def test_all(self):
         successes, failures = self.import_all()
         self.assertTrue(successes or failures)
-        failed = []
+        expected = sorted(_list(self.EXPECTED_TO_FAIL))
         for module, ex in failures:
-            if module not in self.EXPECTED_TO_FAIL:
-                failed.append(module)
+            if module not in expected:
                 print('Failed ' + module, ex, '', sep='\n')
-        self.assertEqual(failed, [])
+
+        actual = sorted(m for m, ex in failures)
+        self.assertEqual(actual, expected)
 
     def import_all(self):
-        p = _list(self.PROJECT_PATHS or self._guess_paths())
+        successes, failures = [], []
+        paths = _list(self.PROJECT_PATHS or self._guess_paths())
 
         warnings.simplefilter(self.WARNINGS_ACTION)
         try:
-            return import_all(*p, include=self.INCLUDE, exclude=self.EXCLUDE)
+            for module in self._all_imports(paths):
+                if self._accept(module):
+                    sys_modules = dict(sys.modules)
+                    try:
+                        importlib.import_module(module)
+                        successes.append(module)
+                    except Exception as e:
+                        failures.append((module, e))
+                    sys.modules = sys_modules
         finally:
             warnings.filters.pop(0)
+        return successes, failures
 
     def _guess_paths(self):
         sourcefile = inspect.getsourcefile(__class__)
@@ -81,61 +118,37 @@ class TestCase(unittest.TestCase):
             if has_init_file(c) and not c.startswith('__'):
                 yield c
 
-
-def import_all(*paths, include=None, exclude=None):
-    """
-    Try to import all .py files and directories below each path in `paths`;
-
-    Returns a pair of sorted lists `successes, failures`.
-       `successes` is a list of module names that successfully imported
-
-       `failures` is a list of (module name, exception) pairs for modules that
-        failed to import
-
-    If `include` is If non-empty, only modules whose full pathname matches
-    one of these regular expressions will be imported.
-
-    If 'exclude` is non-empty, modules whose name matches any of these
-    regular expressions will not be imported.
-    """
-    inc = include and [re.compile(i) for i in _list(include)]
-    exc = exclude and [re.compile(i) for i in _list(exclude)]
-
-    def accept(x):
-        return (exc is None or not any(r.match(x) for r in exc)) and (
-            inc is None or any(r.match(x) for r in inc)
-        )
-
-    successes, failures = [], []
-    for module in _all_imports(paths):
-        if accept(module):
-            sys_modules = dict(sys.modules)
+    def _all_imports(self, paths):
+        for path in paths:
+            root = python_path(path)
+            sys_path = sys.path[:]
+            sys.path.insert(0, root)
             try:
-                importlib.import_module(module)
-                successes.append(module)
-            except Exception as e:
-                failures.append((module, e))
-            sys.modules = sys_modules
+                for directory, files in self._walk_code(path):
+                    rel = os.path.relpath(directory, root)
+                    module = '.'.join(split_all(rel))
+                    yield module
 
-    return successes, failures
+                    for f in files:
+                        if f.endswith('.py') and not f.startswith('__'):
+                            yield '%s.%s' % (module, f[:-3])
+            finally:
+                sys.path[:] = sys_path
 
-
-def _all_imports(paths):
-    for path in paths:
-        root = python_path(path)
-        sys_path = sys.path[:]
-        sys.path.insert(0, root)
-        try:
-            for directory, files in walk_code(path):
-                rel = os.path.relpath(directory, root)
-                module = '.'.join(split_all(rel))
-                yield module
-
-                for f in files:
-                    if f.endswith('.py') and not f.startswith('__'):
-                        yield '%s.%s' % (module, f[:-3])
-        finally:
-            sys.path[:] = sys_path
+    def _walk_code(self, path):
+        """
+        os.walk through subdirectories and files, ignoring any that begin
+        with any of the strings in `skip_prefixes`
+        """
+        for directory, sub_dirs, files in os.walk(path):
+            if any(directory.startswith(p) for p in self.SKIP_PREFIXES) or (
+                not self.ALL_SUBDIRECTORIES
+                and directory != path
+                and not has_init_file(directory)
+            ):
+                sub_dirs.clear()
+            else:
+                yield directory, files
 
 
 def split_all(path):
@@ -167,26 +180,14 @@ def has_init_file(path):
     return os.path.exists(os.path.join(path, '__init__.py'))
 
 
-def walk_code(path, omit_prefixes=('__', '.')):
-    """
-    os.walk through subdirectories and files, ignoring any that begin
-    with any of the strings in `omit_prefixes`
-    """
-    for directory, sub_dirs, files in os.walk(path):
-        if (directory != path and not has_init_file(directory)) or (
-            any(directory.startswith(p) for p in omit_prefixes)
-        ):
-            sub_dirs.clear()
-        else:
-            yield directory, files
-
-
 def _list(s):
-    return [s] if isinstance(s, str) else s
+    return [s] if isinstance(s, str) else s or []
 
 
 def report(*args, file=sys.stdout):
-    successes, failures = import_all(*args)
+    test_case = TestCase()
+    test_case.PROJECT_PATHS = args
+    successes, failures = test_case.import_all()
     if successes:
         print('Successes', *successes, sep='\n  ', file=file)
         print(file=file)
