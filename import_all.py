@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import importlib
 import inspect
 import os
@@ -71,13 +73,10 @@ class TestCase(unittest.TestCase):
         self._exc = [re.compile(i) for i in _list(self.EXCLUDE)]
 
     def _accept(self, x):
-        print(
-            'accept',
-            not any(i.match(x) for i in self._exc),
-            not (self._inc and any(i.match(x) for i in self._inc)),
-        )
-        return not any(i.match(x) for i in self._exc) and (
-            not self._inc or any(i.match(x) for i in self._inc)
+        return (
+            not x.startswith('.')
+            and not any(i.match(x) for i in self._exc)
+            and (not self._inc or any(i.match(x) for i in self._inc))
         )
 
     def test_all(self):
@@ -105,7 +104,8 @@ class TestCase(unittest.TestCase):
                         successes.append(module)
                     except Exception as e:
                         failures.append((module, e))
-                    sys.modules = sys_modules
+                    sys.modules.clear()
+                    sys.modules.update(sys_modules)
         finally:
             warnings.filters.pop(0)
         return successes, failures
@@ -123,6 +123,7 @@ class TestCase(unittest.TestCase):
             root = python_path(path)
             sys_path = sys.path[:]
             sys.path.insert(0, root)
+
             try:
                 for directory, files in self._walk_code(path):
                     rel = os.path.relpath(directory, root)
@@ -184,7 +185,7 @@ def _list(s):
     return [s] if isinstance(s, str) else s or []
 
 
-def report(*args, file=sys.stdout):
+def report(args, file=sys.stdout):
     test_case = TestCase()
     test_case.PROJECT_PATHS = args
     successes, failures = test_case.import_all()
@@ -200,3 +201,4 @@ def report(*args, file=sys.stdout):
 
 if __name__ == '__main__':
     args = sys.argv[1:] or [os.getcwd()]
+    report(args)
