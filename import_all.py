@@ -105,6 +105,7 @@ class TestCase(unittest.TestCase):
                 if self._accept(module):
                     sys_modules = dict(sys.modules)
                     try:
+                        importlib.invalidate_caches()
                         importlib.import_module(module)
                         successes.append(module)
                     except Exception as e:
