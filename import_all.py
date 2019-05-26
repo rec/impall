@@ -34,6 +34,11 @@ class TestCase(unittest.TestCase):
        https://docs.python.org/3/library/warnings.html#the-warnings-filter
     """
 
+    CATCH_EXCEPTIONS = True
+    """If True, catch all exceptions and report them at the end.
+       Otherwise, the first exception will stop the program.
+    """
+
     ALL_SUBDIRECTORIES = False
     """If True, search all subdirectories.
        If False, stop recursion at subdirectories that do not contain
@@ -103,6 +108,8 @@ class TestCase(unittest.TestCase):
                         importlib.import_module(module)
                         successes.append(module)
                     except Exception as e:
+                        if not self.CATCH_EXCEPTIONS:
+                            raise
                         failures.append((module, e))
                     sys.modules.clear()
                     sys.modules.update(sys_modules)
