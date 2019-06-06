@@ -11,78 +11,96 @@ import warnings
 __author__ = 'Tom Ritchford <tom@swirly.com>'
 __version__ = '0.9.2'
 
+""" A unit test that imports every module in a Python repository.
+
+    It prints all errors and warnings then fails, if there are any.
+    Otherwise prints nothing and suceeds.
 """
-    A unit test that imports every module in a Python repository,
-    treating warnings as errors by default."""
+
+ENV_PREFIX = '_IMPORT_ALL_'
+ENV_SEPARATOR = ':'
+
+""" ENV_PREFIX is used when setting test attributes using environment
+    variables.  This is convenient for temporarily turning features on or
+    off while debugging.
+
+    For example, to turn off catch exceptions, set the environment variable
+    _IMPORT_ALL_CATCH_EXCEPTIONS=False
+
+    To set a boolean test attribute, use a string starting with t or T for
+    True, or a string starting with f or F for False; any other string gives
+    an error.
+
+    To set a test attribute that's a list of strings, separate those strings
+    with a colon (ENV_SEPARATOR) - for example:
+
+    _IMPORT_ALL_EXCLUDE=my_project.broken:my_project.exper
+"""
 
 
 class TestCase(unittest.TestCase):
-    """Import every Python module or file in a hierarchy and fail on errors.
-    """
-
-    PROJECT_PATHS = None
-    """A sequence of path roots that will be recusively loaded.
-
-       If empty, guess the project paths from the root Python directory
-       that contains the definition of the class.
-    """
-
-    WARNINGS_ACTION = 'error'
-    """What action to take if a Python warning occurs.
-
-       `warnings.simplefilter` will be set to this value while testing: see
-       https://docs.python.org/3/library/warnings.html#the-warnings-filter
-    """
-
-    CATCH_EXCEPTIONS = True
-    """If True, catch all exceptions and report them at the end.
-       Otherwise, the first exception will stop the program.
+    """ Import every Python module or file and fail on errors or warnings
     """
 
     ALL_SUBDIRECTORIES = False
-    """If True, search all subdirectories.
-       If False, stop recursion at subdirectories that do not contain
-       an __init__.py file.
+    """ If True, search all subdirectories.
+
+        If False, stop searching with subdirectories that do not contain
+        an __init__.py file.
+    """
+
+    PROJECT_PATHS = None
+    """ A list or tuple of path roots that will be recusively loaded.
+
+        If empty, guess PROJECT_PATHS from the root Python directory
+        that contains the definition of the class.
+    """
+
+    WARNINGS_ACTION = 'error'
+    """ What to do if a Python warning occurs.
+
+        `warnings.simplefilter` is be set to this value while testing: see
+        https://docs.python.org/3/library/warnings.html#the-warnings-filter
+        for more details.
+    """
+
+    CATCH_EXCEPTIONS = True
+    """ If True, catch all exceptions and report them at the end.
+
+        Otherwise, the first exception will stop the program with a stack trace
     """
 
     SKIP_PREFIXES = '__', '.'
-    """Any directory which starts with any prefix in SKIP_PREFIXES and its
-       subdirectories are ignored.
+    """ Any directory which starts with any prefix in SKIP_PREFIXES and its
+        subdirectories are ignored.
     """
 
     INCLUDE = None
-    """A list or tuple of regular expressions, or None.
+    """ A list or tuple of regular expressions, or None.
 
-       If non-empty, only modules whose full pathname matches one of these
-       regular expressions will be imported.
+        If non-empty, only modules whose full pathname matches one of these
+        regular expressions will be imported.
     """
 
     EXCLUDE = None
-    """A list or tuple of regular expressions, or None.
+    """ A list or tuple of regular expressions, or None.
 
-       If non-empty, modules whose name matches any of these regular
-       expressions will not be imported.
+        If non-empty, modules whose name matches any of these regular
+        expressions will not be imported.
     """
 
     EXPECTED_TO_FAIL = ()
-    """A list of specific module names that are expected to fail.
+    """ A list of specific module names that are expected to fail.
 
-       This differs from EXCLUDE because those modules aren't imported at all,
-       but the modules in EXPECTED_TO_FAIL must exist, are imported, and then
-       must fail when imported.
+        This differs from EXCLUDE because those modules aren't imported at all,
+        but the modules in EXPECTED_TO_FAIL must exist, are imported, and then
+        must fail when imported.
     """
 
     def __init__(self, *args, **kwds):
         super().__init__(*args, **kwds)
         self._inc = [re.compile(i) for i in _list(self.INCLUDE)]
         self._exc = [re.compile(i) for i in _list(self.EXCLUDE)]
-
-    def _accept(self, x):
-        return (
-            not x.startswith('.')
-            and not any(i.match(x) for i in self._exc)
-            and (not self._inc or any(i.match(x) for i in self._inc))
-        )
 
     def test_all(self):
         successes, failures = self.import_all()
@@ -158,6 +176,52 @@ class TestCase(unittest.TestCase):
                 sub_dirs.clear()
             else:
                 yield directory, files
+
+    def _accept(self, x):
+        return (
+            not x.startswith('.')
+            and not any(i.match(x) for i in self._exc)
+            and (not self._inc or any(i.match(x) for i in self._inc))
+        )
+
+    def _read_env_variables(self):
+        for i in set(dir(TestCase)) - set(dir(unittest.TestCase)):
+            if not i.isupper() or i.startwith('_'):
+                continue
+
+            name = ENV_PREFIX + i
+            value = os.environ.get(name)
+            if not value:
+                continue
+
+            try:
+                cvalue = self._convert_variable(name, value)
+            except Exception:
+                err = 'Cannot understand env var %s="%s"' % (name, value)
+                raise ValueError(err)
+
+            setattr(self, name, cvalue)
+
+    def _convert_variable(self, name, value):
+        default = getattr(TestCase, name)
+        if type(default) is str:
+            return value
+
+        # This is hacky and might need to change if more
+        # configuration variables are added.
+        if isinstance(default, bool):
+            value = value.lower()
+            if value.startswith('t'):
+                return True
+            if value.startswith('f'):
+                return False
+            raise ValueError
+
+        # It's a tuple of strings, split by :s
+        assert type(default) in (type(None), tuple)
+        if value.lower() == 'None':
+            return None
+        return value.split(ENV_SEPARATOR)
 
 
 def split_all(path):
