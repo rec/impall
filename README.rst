@@ -23,7 +23,7 @@ How to use ``import_all``
 Install it with ``pip install import_all``, and use it by adding
 `this tiny file <https://github.com/rec/import_all/blob/master/all_test.py>`_
 (`raw <https://raw.githubusercontent.com/rec/import_all/master/all_test.py>`_)
-anywhere in your project - it looks like this:
+anywhere in a project - it looks like this:
 
 .. code-block:: python
 
@@ -35,31 +35,25 @@ anywhere in your project - it looks like this:
 
 and most of the time that's all you need.
 
-Overriding attributes
+Overriding properties
 =============================
 
-You can override these attributes in :
+ImportAllTest has eight properties that can be overridden.
 
-  * ALL_SUBDIRECTORIES:
-  * CATCH_EXCEPTIONS:
-  * EXCLUDE:
-  * EXPECTED_TO_FAIL:
-  * INCLUDE:
-  * PROJECT_PATHS:
-  * SKIP_PREFIXES:
-  * WARNINGS_ACTION:
+  * ALL_SUBDIRECTORIES: Whether to search all subdirectories
+  * CATCH_EXCEPTIONS: Catch all exceptions and report at the end
+  * EXCLUDE: Which modules to exclude
+  * EXPECTED_TO_FAIL: Which modules are expected to fail
+  * INCLUDE: Which modules to exclude
+  * PROJECT_PATHS: Roots for searching subdirectories
+  * SKIP_PREFIXES: Skip subdirectories that start with these prefixes
+  * WARNINGS_ACTION: What to do on warnings
 
+Documentation for all the properties is `here
+<https://github.com/rec/import_all/blob/master/import_all.py#L18-L133>`_.
 
-Also by default, `Python warnings
-<https://docs.python.org/3/library/warnings.html#the-warnings-filter>`_ are
-treated as errors.
-
-You can easily customize those defaults and a few more by redefining one of the
-variables listed `here
-<https://github.com/rec/import_all/blob/master/import_all.py#L18-L41>`_ inside
-your test class.
-
-For example, to fail on warnings:
+To override a test property permanently, set it in the derived class, like
+this:
 
 .. code-block:: python
 
@@ -68,3 +62,11 @@ For example, to fail on warnings:
 
     class ImportAllTest(import_all.ImportAllTest):
         WARNINGS_ACTION = 'error'
+
+
+To temporarily override a test property, set an environment variable before
+runnning the test:
+
+.. code-block:: bash
+
+    $ _IMPORT_ALL_WARNINGS_ACTION=error pytest
