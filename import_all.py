@@ -87,8 +87,7 @@ class ImportAllTest(unittest.TestCase):
     """A list of modules names, or None.
 
     Modules that appear in EXCLUDE will not be imported at all.
-    This is not recursive - if you want to exclude multiple modules
-    you have to list each one.
+    EXCLUDE isn't recursive - you need to list each module you want to exclude.
     """
 
     EXPECTED_TO_FAIL = ()
@@ -102,8 +101,8 @@ class ImportAllTest(unittest.TestCase):
     INCLUDE = None
     """A list of module names, or None.
 
-    This is not recursive - if you want to include multiple modules
-    you have to list each one.
+    If non-empty, exactly the modules in the list will be loaded.
+    INCLUDE isn't recursive - you need to list each module you want to include.
     """
 
     PROJECT_PATHS = None
