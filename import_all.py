@@ -15,11 +15,26 @@ __version__ = '0.9.2'
 """
 
 
-class TestCase(unittest.TestCase):
+class ImportAllTest(unittest.TestCase):
     """Import every Python module or file and fail on errors or warnings.
 
-    You can customize its behavior by setting one of the following test
-    attributes in one of two ways
+    Derive from this class within your own project to test it.
+
+    Tests are customized by setting one of these seven attributes:
+
+      * ALL_SUBDIRECTORIES
+      * CATCH_EXCEPTIONS
+      * EXCLUDE
+      * EXPECTED_TO_FAIL
+      * INCLUDE
+      * PROJECT_PATHS
+      * SKIP_PREFIXES
+      * WARNINGS_ACTION
+
+    They are individually documented below.
+
+    You can customize behavior in the derived class by setting attributes
+    in one of two ways:
 
     * You can permanently override that test variable in your own test
     class,
@@ -28,7 +43,7 @@ class TestCase(unittest.TestCase):
     variable _IMPORT_ALL_<test attribute name>
 
     For example, to turn on catching exceptions, either set
-    CATCH_EXCEPTIONS = True in the definition of your TestCase, or set
+    CATCH_EXCEPTIONS = True in your class definition, or set
     the environment variable _IMPORT_ALL_CATCH_EXCEPTIONS=True before
     running the tests.
 
@@ -333,6 +348,9 @@ def _split_all(path):
 
     old_path and components.insert(0, old_path)
     return components
+
+
+TestCase = ImportAllTest  # DEPRECATED
 
 
 if __name__ == '__main__':
