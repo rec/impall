@@ -24,5 +24,6 @@ setup(
     long_description=open('README.rst').read(),
     license='MIT',
     classifiers=_classifiers,
-    keywords=['testing', 'importing'],
+    keywords=['testing', 'modules'],
+    scripts=['import_all.py'],
 )
