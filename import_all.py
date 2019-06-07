@@ -3,7 +3,6 @@
 import importlib
 import inspect
 import os
-import re
 import sys
 import unittest
 import warnings
@@ -45,10 +44,8 @@ class ImportAllTest(unittest.TestCase):
         _IMPORT_ALL_WARNINGS_ACTION=error pytest
 
     The properties INCLUDE, EXCLUDE, PROJECT_PATH and SKIP_PREFIXES can be
-    lists of strings, or one string with pieces separated by colons.
-
-    And because '.' is a special character in regular expressions, '/' can be
-    used instead of '.' in the INCLUDE and EXCLUDE properties.
+    lists of strings, or a string separated with colons like
+        'foo.mod1:foo.mod2'
 
     NOTE: to reduce side-effects, `sys.modules` is restored to its
     original condition after each import, but there might be other
@@ -87,34 +84,26 @@ class ImportAllTest(unittest.TestCase):
     """
 
     EXCLUDE = None
-    """A list or tuple of regular expressions, or None.
+    """A list of modules names, or None.
 
-    If non-empty, modules whose name matches any of these regular
-    expressions will not be imported.
-
-    For convenience, since the character '.' is a wildcard in regular
-    expressions, the '/' character can be used in its place, so these
-    two property assignments are the same:
-
-      EXCLUDE = 'foo\\.bar\\.baz:bing\\.bang'
-      EXCLUDE = 'foo/bar/baz:bing/bang'
+    Modules that appear in EXCLUDE will not be imported at all.
+    This is not recursive - if you want to exclude multiple modules
+    you have to list each one.
     """
 
     EXPECTED_TO_FAIL = ()
     """A list of specific module names that are expected to fail.
 
-    This differs from EXCLUDE because modules which match EXCLUDE aren't
+    This differs from EXCLUDE because modules in EXCLUDE aren't
     imported at all, but the modules in EXPECTED_TO_FAIL must exist, are
     imported, and then must fail when imported.
     """
 
     INCLUDE = None
-    """A list or tuple of regular expressions, or None.
+    """A list of module names, or None.
 
-    If non-empty, only modules whose full pathname matches one of these
-    regular expressions will be imported.
-
-    Just like in the EXCLUDE property, '/' can be used instead of '.'
+    This is not recursive - if you want to include multiple modules
+    you have to list each one.
     """
 
     PROJECT_PATHS = None
@@ -142,8 +131,8 @@ class ImportAllTest(unittest.TestCase):
         super().__init__(*args, **kwds)
         self._read_env_variables()
 
-        self._exc = _property_to_re(self.EXCLUDE)
-        self._inc = _property_to_re(self.INCLUDE)
+        self._exc = _list(self.EXCLUDE)
+        self._inc = _list(self.INCLUDE)
 
     @staticmethod
     def properties():
@@ -233,8 +222,8 @@ class ImportAllTest(unittest.TestCase):
     def _accept(self, x):
         return (
             not x.startswith('.')
-            and not any(i.match(x) for i in self._exc)
-            and (not self._inc or any(i.match(x) for i in self._inc))
+            and x not in self._exc
+            and (not self._inc or x in self._inc)
         )
 
     def _read_env_variables(self):
@@ -291,10 +280,6 @@ with a colon - for example:
 
 _IMPORT_ALL_EXCLUDE=my_project.broken:my_project.experimental
 """
-
-
-def _property_to_re(s):
-    return [re.compile(i.replace('/', r'\.')) for i in _list(s)]
 
 
 def _has_init_file(path):
