@@ -83,7 +83,7 @@ like this:
 
 where if no directory is specified it uses the current directory.
 
-You can use environment variables to set properties as above but for convenience
+You can use environment variables to set properties as above and for convenience
 there are also command line flags for each property, so you can write:
 
 .. code-block:: bash
