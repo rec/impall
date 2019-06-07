@@ -52,7 +52,7 @@ ImportAllTest has eight properties that can be overridden.
 Documentation for all the properties is `here
 <https://github.com/rec/import_all/blob/master/import_all.py#L18-L133>`_.
 
-To override a test property permanently, set it in the derived class, like
+To permanently override a test property, set it in the derived class, like
 this:
 
 .. code-block:: python
@@ -65,8 +65,27 @@ this:
 
 
 To temporarily override a test property, set an environment variable before
-runnning the test:
+runnning the test, like this:
 
 .. code-block:: bash
 
     $ _IMPORT_ALL_WARNINGS_ACTION=error pytest
+
+Using ``import_all.py`` as a standalone program
+
+The file ``import_all.py`` is executable and is installed in the path by
+``pip``.  You can use it on projects that you are evaluation or debugging
+like this:
+
+.. code-block:: bash
+
+    $ import_all.py [directory ..directory]
+
+where if no directory is specified it uses the current directory.
+
+You can use environment variables to set properties as above but for convenience
+there are also command line flags for each property, so you can write:
+
+.. code-block:: bash
+
+    $ import_all.py --catch_exceptions --all_directories --exclude=foo/bar

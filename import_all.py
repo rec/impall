@@ -17,38 +17,46 @@ __version__ = '0.9.2'
 
 class ImportAllTest(unittest.TestCase):
     """Import every Python module or file and fail on errors or warnings.
-    Derive from this class within your own project.
 
-    Tests are customized by overriding one of these seven attributes,
+    Derive from this class within your own project and most of the time
+    you are done.
+
+    Tests can be customized by overriding one of these seven properties,
     documented individually below: ALL_SUBDIRECTORIES, CATCH_EXCEPTIONS,
     EXCLUDE, EXPECTED_TO_FAIL, INCLUDE, PROJECT_PATHS, SKIP_PREFIXES,
     and WARNINGS_ACTION.
 
-    There are two ways to override an attribute:
+    There are two ways to override a property:
 
     * You can permanently override it in your test class,
 
     * You can temporarily override it by setting an environment
-    variable looking like _IMPORT_ALL_<test attribute name>
+    variable `_IMPORT_ALL_<property name>`
 
-    For example, to turn on catching exceptions, either set
-    CATCH_EXCEPTIONS = True in your class definition, or set
-    the environment variable _IMPORT_ALL_CATCH_EXCEPTIONS=True before
-    running the tests.
+    For example, to turn warnings into errors, either set the property
+    WARNINGS_ACTION it in your class definition like this:
 
-    Also, the properties INCLUDE, EXCLUDE, PROJECT_PATH and SKIP_PREFIXES can
-    be lists of strings, or a single string with parts separated by
-    colons.
+        class ImportAllTest(import_all.ImportAllTest):
+            WARNINGS_ACTION = 'error'
+
+    or set the environment variable _IMPORT_ALL_WARNINGS_ACTION=True before
+    running the tests - perhaps like this:
+
+        _IMPORT_ALL_WARNINGS_ACTION=error pytest
+
+    The properties INCLUDE, EXCLUDE, PROJECT_PATH and SKIP_PREFIXES can be
+    lists of strings, or one string with pieces separated by colons.
 
     And because '.' is a special character in regular expressions, '/' can be
     used instead of '.' in the INCLUDE and EXCLUDE properties.
 
     NOTE: to reduce side-effects, `sys.modules` is restored to its
     original condition after each import, but there might be other
-    side-effects from loading some specific module.  Use the EXCLUDE
-    property to exclude such modules: in general, it is probably a bad
-    idea to have significant side-effects from simply loading a
-    module.
+    side-effects from loading some specific module.
+
+    Use the EXCLUDE property to exclude modules with undesirable side
+    effects. In general, it is probably a bad idea to have significant
+    side-effects just from loading a module.
     """
 
     ALL_SUBDIRECTORIES = False
@@ -64,9 +72,9 @@ class ImportAllTest(unittest.TestCase):
     but not a __init__.py file.
 
     This turns out to be what you want most of the time, but if you want
-    import absolutely everything, set the ALL_SUBDIRECTORIES attribute
+    import absolutely everything, set the ALL_SUBDIRECTORIES property
     to be True.  If you want to import more specically, you can use the
-    test attributes EXCLUDE, INCLUDE or PROJECT_PATHS.
+    test properties EXCLUDE, INCLUDE or PROJECT_PATHS.
     """
 
     CATCH_EXCEPTIONS = False
@@ -86,7 +94,7 @@ class ImportAllTest(unittest.TestCase):
 
     For convenience, since the character '.' is a wildcard in regular
     expressions, the '/' character can be used in its place, so these
-    two attribute assignments are the same:
+    two property assignments are the same:
 
       EXCLUDE = 'foo\\.bar\\.baz:bing\\.bang'
       EXCLUDE = 'foo/bar/baz:bing/bang'
@@ -106,7 +114,7 @@ class ImportAllTest(unittest.TestCase):
     If non-empty, only modules whose full pathname matches one of these
     regular expressions will be imported.
 
-    Just like in the EXCLUDE attribute, '/' can be used instead of '.'
+    Just like in the EXCLUDE property, '/' can be used instead of '.'
     """
 
     PROJECT_PATHS = None
@@ -134,8 +142,8 @@ class ImportAllTest(unittest.TestCase):
         super().__init__(*args, **kwds)
         self._read_env_variables()
 
-        self._exc = _attribute_to_re(self.EXCLUDE)
-        self._inc = _attribute_to_re(self.INCLUDE)
+        self._exc = _property_to_re(self.EXCLUDE)
+        self._inc = _property_to_re(self.INCLUDE)
 
     @staticmethod
     def properties():
@@ -267,25 +275,25 @@ class ImportAllTest(unittest.TestCase):
 ENV_PREFIX = '_IMPORT_ALL_'
 ENV_SEPARATOR = ':'
 
-""" ENV_PREFIX is used when setting test attributes using environment
-    variables.  This is convenient for temporarily turning features on or
-    off while debugging.
+"""ENV_PREFIX is used when setting test properties using environment
+variables.  This is convenient for temporarily turning features on or
+off while debugging.
 
-    For example, to turn off catching exceptions, set the environment variable
-    _IMPORT_ALL_CATCH_EXCEPTIONS=True
+For example, to turn off catching exceptions, set the environment
+variable _IMPORT_ALL_CATCH_EXCEPTIONS=True
 
-    To set a boolean test attribute, use a string starting with t or T for
-    True, or a string starting with f or F for False; any other string gives
-    an error.
+To set a boolean test property, use a string starting with t or T for
+True, or a string starting with f or F for False; any other string gives
+an error.
 
-    To set a test attribute that's a list of strings, separate those strings
-    with a colon - for example:
+To set a test property that's a list of strings, separate those strings
+with a colon - for example:
 
-    _IMPORT_ALL_EXCLUDE=my_project.broken:my_project.experimental
+_IMPORT_ALL_EXCLUDE=my_project.broken:my_project.experimental
 """
 
 
-def _attribute_to_re(s):
+def _property_to_re(s):
     return [re.compile(i.replace('/', r'\.')) for i in _list(s)]
 
 
