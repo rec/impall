@@ -30,7 +30,7 @@ anywhere in your project - it looks like this:
     import import_all
 
 
-    class ImportAllTest(import_all.TestCase):
+    class ImportAllTest(import_all.ImportAllTest):
         pass
 
 and most of the time that's all you need.
@@ -66,5 +66,5 @@ For example, to fail on warnings:
     import import_all
 
 
-    class ImportAllTest(import_all.TestCase):
+    class ImportAllTest(import_all.ImportAllTest):
         WARNINGS_ACTION = 'error'
