@@ -3,7 +3,7 @@ import os
 import pathlib
 
 
-class ImportAllTest(import_all.TestCase):
+class ImportAllTest(import_all.ImportAllTest):
     CATCH_EXCEPTIONS = True
     PROJECT_PATHS = str(pathlib.Path(__file__).parent / 'edge' / 'edge')
     INCLUDE = 'edge.yes', 'edge.ok', 'edge.maybe'
@@ -11,7 +11,7 @@ class ImportAllTest(import_all.TestCase):
     EXPECTED_TO_FAIL = 'edge.ok'
 
 
-class ImportAllEnvironmentTest(import_all.TestCase):
+class ImportAllEnvironmentTest(import_all.ImportAllTest):
     def __init__(self, *args, **kwds):
         old_env = dict(os.environ)
         os.environ.update(
@@ -28,7 +28,7 @@ class ImportAllEnvironmentTest(import_all.TestCase):
             os.environ.update(old_env)
 
 
-class ImportAllSubdirectoriesTest(import_all.TestCase):
+class ImportAllSubdirectoriesTest(import_all.ImportAllTest):
     CATCH_EXCEPTIONS = True
     ALL_SUBDIRECTORIES = True
     EXPECTED_TO_FAIL = (

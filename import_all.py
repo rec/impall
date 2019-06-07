@@ -237,7 +237,7 @@ class ImportAllTest(unittest.TestCase):
         )
 
     def _read_env_variables(self):
-        for name in set(dir(TestCase)) - set(dir(unittest.TestCase)):
+        for name in set(dir(ImportAllTest)) - set(dir(unittest.TestCase)):
             if not name.isupper() or name.startswith('_'):
                 continue
 
@@ -255,7 +255,7 @@ class ImportAllTest(unittest.TestCase):
             setattr(self, name, cvalue)
 
     def _convert_variable(self, name, value):
-        default = getattr(TestCase, name)
+        default = getattr(ImportAllTest, name)
         if type(default) is str:
             return value
 
@@ -324,7 +324,7 @@ def _python_path(path):
 
 
 def _report(args, file=sys.stdout):
-    test_case = TestCase()
+    test_case = ImportAllTest()
     test_case.PROJECT_PATHS = args
     successes, failures = test_case.import_all()
     if successes:
