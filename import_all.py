@@ -17,30 +17,19 @@ __version__ = '0.9.2'
 
 class ImportAllTest(unittest.TestCase):
     """Import every Python module or file and fail on errors or warnings.
+    Derive from this class within your own project.
 
-    Derive from this class within your own project to test it.
+    Tests are customized by overriding one of these seven attributes,
+    documented individually below: ALL_SUBDIRECTORIES, CATCH_EXCEPTIONS,
+    EXCLUDE, EXPECTED_TO_FAIL, INCLUDE, PROJECT_PATHS, SKIP_PREFIXES,
+    and WARNINGS_ACTION.
 
-    Tests are customized by setting one of these seven attributes:
+    There are two ways to override an attribute:
 
-      * ALL_SUBDIRECTORIES
-      * CATCH_EXCEPTIONS
-      * EXCLUDE
-      * EXPECTED_TO_FAIL
-      * INCLUDE
-      * PROJECT_PATHS
-      * SKIP_PREFIXES
-      * WARNINGS_ACTION
+    * You can permanently override it in your test class,
 
-    They are individually documented below.
-
-    You can customize behavior in the derived class by setting attributes
-    in one of two ways:
-
-    * You can permanently override that test variable in your own test
-    class,
-
-    * You can temporarily override the value by setting an environment
-    variable _IMPORT_ALL_<test attribute name>
+    * You can temporarily override it by setting an environment
+    variable looking like _IMPORT_ALL_<test attribute name>
 
     For example, to turn on catching exceptions, either set
     CATCH_EXCEPTIONS = True in your class definition, or set
@@ -148,6 +137,11 @@ class ImportAllTest(unittest.TestCase):
         self._exc = _attribute_to_re(self.EXCLUDE)
         self._inc = _attribute_to_re(self.INCLUDE)
 
+    @staticmethod
+    def properties():
+        props = set(dir(ImportAllTest)) - set(dir(unittest.TestCase))
+        return [a for a in props if a.isupper() and not a.startswith('_')]
+
     def test_all(self):
         successes, failures = self.import_all()
         self.assertTrue(successes or failures)
@@ -162,7 +156,6 @@ class ImportAllTest(unittest.TestCase):
     def import_all(self):
         successes, failures = [], []
         paths = self.PROJECT_PATHS
-        paths = [paths] if paths and isinstance(paths, str) else paths
         paths = _list(paths or self._guess_paths())
 
         warnings.simplefilter(self.WARNINGS_ACTION)
@@ -205,7 +198,7 @@ class ImportAllTest(unittest.TestCase):
             try:
                 for directory, files in self._walk_code(path):
                     rel = os.path.relpath(directory, root)
-                    module = '.'.join(_split_all(rel))
+                    module = '.'.join(_split_path(rel))
                     yield module
 
                     for f in files:
@@ -237,10 +230,7 @@ class ImportAllTest(unittest.TestCase):
         )
 
     def _read_env_variables(self):
-        for name in set(dir(ImportAllTest)) - set(dir(unittest.TestCase)):
-            if not name.isupper() or name.startswith('_'):
-                continue
-
+        for name in self.properties():
             env_name = ENV_PREFIX + name
             value = os.environ.get(env_name)
             if not value:
@@ -289,18 +279,14 @@ ENV_SEPARATOR = ':'
     an error.
 
     To set a test attribute that's a list of strings, separate those strings
-    with a colon (ENV_SEPARATOR) - for example:
+    with a colon - for example:
 
-    _IMPORT_ALL_EXCLUDE=my_project.broken:my_project.exper
+    _IMPORT_ALL_EXCLUDE=my_project.broken:my_project.experimental
 """
 
 
 def _attribute_to_re(s):
-    if s is None:
-        return ()
-    if isinstance(s, str):
-        s = [s]
-    return [re.compile(i.replace('/', r'\.')) for i in s]
+    return [re.compile(i.replace('/', r'\.')) for i in _list(s)]
 
 
 def _has_init_file(path):
@@ -309,7 +295,7 @@ def _has_init_file(path):
 
 
 def _list(s):
-    return [s] if isinstance(s, str) else s or []
+    return s.split(':') if isinstance(s, str) else s or []
 
 
 def _python_path(path):
@@ -325,7 +311,11 @@ def _python_path(path):
 
 def _report(args, file=sys.stdout):
     test_case = ImportAllTest()
-    test_case.PROJECT_PATHS = args
+    paths, values = _split_args(args)
+    test_case.__dict__.update(values)
+
+    test_case.PROJECT_PATHS = list(test_case.PROJECT_PATHS or []) + paths
+
     successes, failures = test_case.import_all()
     if successes:
         print('Successes', *successes, sep='\n  ', file=file)
@@ -337,7 +327,34 @@ def _report(args, file=sys.stdout):
         print(file=file)
 
 
-def _split_all(path):
+def _split_args(args):
+    props = ImportAllTest.properties()
+
+    paths = []
+    values = {}
+    for a in args:
+        if a.startswith('-'):
+            name, *rest = a.lstrip('-').split('=', 1)
+            cname = name.upper().replace('-', '_')
+            if cname not in props:
+                print(props)
+                raise ValueError('Cannot understand flag', a, cname)
+            is_bool = isinstance(getattr(ImportAllTest, cname), bool)
+
+            if rest:
+                value = rest[0]
+            elif is_bool:
+                value = 'True'
+            else:
+                raise ValueError('Cannot understand flag', a)
+            values[cname] = value
+        else:
+            paths.append(a)
+
+    return paths, values
+
+
+def _split_path(path):
     """Use os.path.split repeatedly to split a path into components"""
     old_path = None
     components = []
