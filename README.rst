@@ -49,7 +49,7 @@ ImportAllTest has eight properties that can be overridden.
   * SKIP_PREFIXES: Skip subdirectories that start with these prefixes
   * WARNINGS_ACTION: What to do on warnings
 
-Documentation for all the properties is `here
+Full documentation for each property is `here
 <https://github.com/rec/import_all/blob/master/import_all.py#L18-L133>`_.
 
 To permanently override a test property, set it in the derived class, like
@@ -74,7 +74,7 @@ runnning the test, like this:
 Using ``import_all.py`` as a standalone program
 
 The file ``import_all.py`` is executable and is installed in the path by
-``pip``.  You can use it on projects that you are evaluation or debugging
+``pip``.  You can use it on projects that you are evaluating or debugging
 like this:
 
 .. code-block:: bash

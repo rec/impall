@@ -7,9 +7,9 @@ import unittest
 class PropertiesTest(import_all.ImportAllTest):
     CATCH_EXCEPTIONS = True
     PROJECT_PATHS = str(pathlib.Path(__file__).parent / 'edge' / 'edge')
-    INCLUDE = 'edge.yes', 'edge.ok', 'edge.maybe'
+    INCLUDE = 'edge.yes', 'edge.ok', 'edge.maybe', 'edge.sub.*'
     EXCLUDE = 'edge.no', 'edge.maybe', 'edge.sure'
-    EXPECTED_TO_FAIL = 'edge.ok'
+    EXPECTED_TO_FAIL = 'edge.ok', 'edge.sub.one'
 
 
 class EnvironmentVariablesTest(import_all.ImportAllTest):
@@ -20,7 +20,9 @@ class EnvironmentVariablesTest(import_all.ImportAllTest):
             _IMPORT_ALL_PROJECT_PATHS=str(PropertiesTest.PROJECT_PATHS),
             _IMPORT_ALL_INCLUDE=':'.join(PropertiesTest.INCLUDE),
             _IMPORT_ALL_EXCLUDE=':'.join(PropertiesTest.EXCLUDE),
-            _IMPORT_ALL_EXPECTED_TO_FAIL=PropertiesTest.EXPECTED_TO_FAIL,
+            _IMPORT_ALL_EXPECTED_TO_FAIL=':'.join(
+                PropertiesTest.EXPECTED_TO_FAIL
+            ),
         )
         try:
             super().__init__(*args, **kwds)
@@ -36,6 +38,10 @@ class ImportAllSubdirectoriesTest(import_all.ImportAllTest):
         'test.edge.edge.maybe',
         'test.edge.edge.no',
         'test.edge.edge.ok',
+        'test.edge.edge.sub.one',
+        'test.edge.edge.sub2.one',
+        'test.edge.edge.sub2.sub',
+        'test.edge.edge.sub2.sub.two',
     )
 
 
@@ -67,3 +73,23 @@ class SplitArgsTest(unittest.TestCase):
             self.split('foo --catch-exception')
         with self.assertRaises(ValueError):
             self.split('foo --include')
+
+
+class ModMatcherTest(unittest.TestCase):
+    def test_empty(self):
+        matches = import_all._ModuleMatcher('')
+        self.assertFalse(matches(''))
+        self.assertFalse(matches('foo'))
+
+    def test_simple(self):
+        matches = import_all._ModuleMatcher('foo:bar.*:baz.**')
+        self.assertTrue(matches('foo'))
+        self.assertFalse(matches('foo.foo'))
+
+        self.assertTrue(matches('bar.foo'))
+        self.assertFalse(matches('bar'))
+        self.assertFalse(matches('bar.foo.bar'))
+
+        self.assertTrue(matches('baz.foo'))
+        self.assertTrue(matches('baz.foo.baz'))
+        self.assertFalse(matches('baz'))
