@@ -2,6 +2,7 @@
 
 import importlib
 import inspect
+import itertools
 import os
 import sys
 import unittest
@@ -20,23 +21,24 @@ class ImportAllTest(unittest.TestCase):
     Derive from this class within your own project and most of the time
     you are done.
 
-    Tests can be customized by overriding one of these seven properties,
-    documented individually below: ALL_SUBDIRECTORIES, CATCH_EXCEPTIONS,
-    EXCLUDE, EXPECTED_TO_FAIL, INCLUDE, PROJECT_PATHS, SKIP_PREFIXES,
-    and WARNINGS_ACTION.
+    Tests can be customized by overriding one of seven properties,
+    documented individually below:
+
+      ALL_SUBDIRECTORIES, CATCH_EXCEPTIONS, EXCLUDE, EXPECTED_TO_FAIL,
+      INCLUDE, PROJECT_PATHS, SKIP_PREFIXES, and WARNINGS_ACTION.
 
     There are two ways to override a property:
 
-    * You can permanently override it in your test class,
+      * You can permanently override it in your test class,
 
-    * You can temporarily override it by setting an environment
-    variable `_IMPORT_ALL_<property name>`
+      * You can temporarily override it by setting an environment
+      variable `_IMPORT_ALL_<property name>`
 
     For example, to turn warnings into errors, either set the property
     WARNINGS_ACTION it in your class definition like this:
 
         class ImportAllTest(import_all.ImportAllTest):
-            WARNINGS_ACTION = 'error'
+           WARNINGS_ACTION = 'error'
 
     or set the environment variable _IMPORT_ALL_WARNINGS_ACTION=True before
     running the tests - perhaps like this:
@@ -45,7 +47,17 @@ class ImportAllTest(unittest.TestCase):
 
     The properties INCLUDE, EXCLUDE, PROJECT_PATH and SKIP_PREFIXES can be
     lists of strings, or a string separated with colons like
-        'foo.mod1:foo.mod2'
+    'foo.mod1:foo.mod2'
+
+    INCLUDE and EXCLUDE match modules, and also allow * as a wildcard.
+    A single * matches any module segment, and a double ** matches any
+    remaining segments. For example,
+
+        INCLUDE = 'foo', 'bar.*', 'baz.**'
+
+      * matches `foo` but not `foo.foo`
+      * matches `bar.foo` but not `bar` or `bar.foo.bar`
+      * matches `baz.foo` as well as `baz.foo.bar` but not `baz`
 
     NOTE: to reduce side-effects, `sys.modules` is restored to its
     original condition after each import, but there might be other
@@ -71,7 +83,7 @@ class ImportAllTest(unittest.TestCase):
     This turns out to be what you want most of the time, but if you want
     import absolutely everything, set the ALL_SUBDIRECTORIES property
     to be True.  If you want to import more specically, you can use the
-    test properties EXCLUDE, INCLUDE or PROJECT_PATHS.
+    properties EXCLUDE, INCLUDE or PROJECT_PATHS.
     """
 
     CATCH_EXCEPTIONS = False
@@ -87,7 +99,6 @@ class ImportAllTest(unittest.TestCase):
     """A list of modules names, or None.
 
     Modules that appear in EXCLUDE will not be imported at all.
-    EXCLUDE isn't recursive - you need to list each module you want to exclude.
     """
 
     EXPECTED_TO_FAIL = ()
@@ -112,7 +123,7 @@ class ImportAllTest(unittest.TestCase):
     contains the definition of the class.
     """
 
-    SKIP_PREFIXES = '__', '.'
+    SKIP_PREFIXES = '_', '.'
     """Any directory which starts with a prefix from SKIP_PREFIXES is ignored
     """
 
@@ -130,8 +141,8 @@ class ImportAllTest(unittest.TestCase):
         super().__init__(*args, **kwds)
         self._read_env_variables()
 
-        self._exc = _list(self.EXCLUDE)
-        self._inc = _list(self.INCLUDE)
+        self._exc = _ModuleMatcher(self.EXCLUDE)
+        self._inc = _ModuleMatcher(self.INCLUDE)
 
     @staticmethod
     def properties():
@@ -209,7 +220,8 @@ class ImportAllTest(unittest.TestCase):
         with any of the strings in `skip_prefixes`
         """
         for directory, sub_dirs, files in os.walk(path):
-            if any(directory.startswith(p) for p in self.SKIP_PREFIXES) or (
+            base = os.path.basename(directory)
+            if any(base.startswith(p) for p in self.SKIP_PREFIXES) or (
                 not self.ALL_SUBDIRECTORIES
                 and directory != path
                 and not _has_init_file(directory)
@@ -221,8 +233,8 @@ class ImportAllTest(unittest.TestCase):
     def _accept(self, x):
         return (
             not x.startswith('.')
-            and x not in self._exc
-            and (not self._inc or x in self._inc)
+            and not self._exc(x)
+            and (not self._inc or self._inc(x))
         )
 
     def _read_env_variables(self):
@@ -260,6 +272,33 @@ class ImportAllTest(unittest.TestCase):
         return value.split(ENV_SEPARATOR)
 
 
+class _ModuleMatcher:
+    """
+    Match glob-like patterns like foo, bar.*, or baz.**
+    """
+
+    def __init__(self, patterns):
+        self.parts_list = [p.split('.') for p in _list(patterns)]
+
+    def __bool__(self):
+        return bool(self.parts_list)
+
+    def __call__(self, module):
+        mparts = module.split('.')
+
+        def match(parts):
+            for part, mod in itertools.zip_longest(parts, mparts):
+                if mod is None:
+                    return False
+                if part == '**':
+                    return True
+                if part != '*' and part != mod:
+                    return False
+            return True
+
+        return any(match(p) for p in self.parts_list)
+
+
 ENV_PREFIX = '_IMPORT_ALL_'
 ENV_SEPARATOR = ':'
 
@@ -287,7 +326,9 @@ def _has_init_file(path):
 
 
 def _list(s):
-    return s.split(':') if isinstance(s, str) else s or []
+    if not s:
+        return []
+    return s.split(':') if isinstance(s, str) else s
 
 
 def _python_path(path):
