@@ -9,7 +9,7 @@ import unittest
 import warnings
 
 __author__ = 'Tom Ritchford <tom@swirly.com>'
-__version__ = '0.9.4'
+__version__ = '0.9.5'
 
 """A unit test that individually imports every module in a Python repository.
 """
