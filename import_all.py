@@ -178,7 +178,7 @@ class ImportAllTest(unittest.TestCase):
         return successes, failures
 
     def _guess_paths(self):
-        sourcefile = inspect.getsourcefile(__class__)
+        sourcefile = inspect.getsourcefile(self.__class__)
         path = _python_path(os.path.dirname(sourcefile))
 
         for c in os.listdir(path):
