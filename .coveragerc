@@ -3,7 +3,7 @@
 [run]
 
 branch = True
-source = timedata
+source = import_all.py
 
 [report]
 
