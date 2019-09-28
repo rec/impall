@@ -400,9 +400,6 @@ def _split_path(path):
     return components
 
 
-TestCase = ImportAllTest  # DEPRECATED
-
-
 if __name__ == '__main__':
     args = sys.argv[1:] or [os.getcwd()]
     _report(args)
