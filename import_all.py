@@ -128,7 +128,6 @@ class ImportAllTest(unittest.TestCase):
 
     def __init__(self, *args, **kwds):
         super().__init__(*args, **kwds)
-        self._read_env_variables()
 
         self._exc = _ModuleMatcher(self.EXCLUDE)
         self._inc = _ModuleMatcher(self.INCLUDE)
@@ -226,21 +225,6 @@ class ImportAllTest(unittest.TestCase):
             and (not self._inc or self._inc(x))
         )
 
-    def _read_env_variables(self):
-        for name in PROPERTIES:
-            env_name = ENV_PREFIX + name
-            value = os.environ.get(env_name)
-            if not value:
-                continue
-
-            try:
-                cvalue = self._convert_variable(name, value)
-            except Exception:
-                err = 'Cannot understand env var %s="%s"' % (name, value)
-                raise ValueError(err)
-
-            setattr(self, name, cvalue)
-
     def _convert_variable(self, name, value):
         default = getattr(ImportAllTest, name)
         if type(default) is str:
@@ -291,25 +275,7 @@ class _ModuleMatcher:
 PROPERTIES = set(dir(ImportAllTest)) - set(dir(unittest.TestCase))
 PROPERTIES = sorted(a for a in PROPERTIES if a.isupper())
 
-ENV_PREFIX = '_IMPORT_ALL_'
 ENV_SEPARATOR = ':'
-
-"""ENV_PREFIX is used when setting test properties using environment
-variables.  This is convenient for temporarily turning features on or
-off while debugging.
-
-For example, to turn off catching exceptions, set the environment
-variable _IMPORT_ALL_RAISE_EXCEPTIONS=True
-
-To set a boolean test property, use a string starting with t or T for
-True, or a string starting with f or F for False; any other string gives
-an error.
-
-To set a test property that's a list of strings, separate those strings
-with a colon - for example:
-
-_IMPORT_ALL_EXCLUDE=my_project.broken:my_project.experimental
-"""
 
 
 def _has_init_file(path):
