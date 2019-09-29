@@ -300,7 +300,8 @@ def _python_path(path):
     return path
 
 
-def _report(args, file=sys.stdout):
+def _report():
+    args = sys.argv[1:] or [os.getcwd()]
     test_case = ImportAllTest()
     paths, values = _split_args(args)
     test_case.__dict__.update(values)
@@ -309,13 +310,13 @@ def _report(args, file=sys.stdout):
 
     successes, failures = test_case.import_all()
     if successes:
-        print('Successes', *successes, sep='\n  ', file=file)
-        print(file=file)
+        print('Successes', *successes, sep='\n  ')
+        print()
 
     if failures:
         failures = ['%s (%s)' % (m, e) for (m, e) in failures]
-        print('Failures', *failures, sep='\n  ', file=file)
-        print(file=file)
+        print('Failures', *failures, sep='\n  ', file=sys.stderr)
+        print(file=sys.stderr)
 
 
 def _split_args(args):
@@ -356,6 +357,17 @@ def _split_path(path):
     return components
 
 
+_USAGE = """
+import_all.py [path ...path]
+
+   Individually and separately imports each Python file found on or below these
+   paths and reports on any failures.
+
+   With no arguments, import_all imports all Python files found in
+   any Python directory (i.e. with a __init__.py file) below the current
+   directory.
+"""
+
+
 if __name__ == '__main__':
-    args = sys.argv[1:] or [os.getcwd()]
-    _report(args)
+    _report()
