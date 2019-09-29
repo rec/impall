@@ -1,5 +1,63 @@
 #!/usr/bin/env python3
 
+"""
+Individually and separately imports each Python module or file in a project and
+reports warnings or failures at the end.
+
+import_all.py can be run as a unit test or as a command line utility.
+
+To run as a unit test, just inherit from the base class.
+
+For example, put the following code anywhere in your test directories:
+
+    import import_all
+
+    class ImportAllTest(import_all.ImportAllTest):
+        pass
+
+(or copy [this file](https://github.com/rec/import_all/blob/master/all_test.py)
+somewhere into your project).
+
+Tests are customized by overriding one of the following properties in the
+derived class:
+
+    ALL_SUBDIRECTORIES, EXCLUDE, FAILING, INCLUDE, PROJECT_PATHS,
+    RAISE_EXCEPTIONS, SKIP_PREFIXES, and WARNINGS_ACTION.
+
+For example, to turn warnings into errors, set the property
+WARNINGS_ACTION in the derived class definition, like this:
+
+    class ImportAllTest(import_all.ImportAllTest):
+        WARNINGS_ACTION = 'error'
+
+or if running as a command utility:
+
+    $ import_all.py --warnings_action=error
+    $ import_all.py -w error
+
+The properties INCLUDE, EXCLUDE, PROJECT_PATH and SKIP_PREFIXES can be
+lists of strings, or a string separated with colons like
+'foo.mod1:foo.mod2'
+
+INCLUDE and EXCLUDE match modules, and also allow * as a wildcard.
+A single * matches any module segment, and a double ** matches any
+remaining segments. For example,
+
+INCLUDE = 'foo', 'bar.*', 'baz.**'
+
+* matches `foo` but not `foo.foo`
+* matches `bar.foo` but not `bar` or `bar.foo.bar`
+* matches `baz.foo` as well as `baz.foo.bar` but not `baz`
+
+NOTE: to reduce side-effects, `sys.modules` is restored to its
+original condition after each import, but there might be other
+side-effects from loading some specific module.
+
+Use the EXCLUDE property to exclude modules with undesirable side
+effects. In general, it is probably a bad idea to have significant
+side-effects just from loading a module.
+"""
+
 import importlib
 import inspect
 import itertools
@@ -11,131 +69,66 @@ import warnings
 __author__ = 'Tom Ritchford <tom@swirly.com>'
 __version__ = '0.9.5'
 
-"""A unit test that individually imports every module in a Python repository.
-"""
+ALL_SUBDIRECTORIES = """
+If True, search all subdirectories.
+
+If False, stop searching with subdirectories that do not contain an
+__init__.py file.
+
+By default, the test attempts to import every Python module and file
+reachable from its Python root directory.  This means ``import_all``
+does not load .py files in subdirectories which contain .py files
+but not a __init__.py file.
+
+This turns out to be what you want most of the time, but if you want
+import absolutely everything, set the ALL_SUBDIRECTORIES property
+to be True.  If you want to import more specically, you can use the
+properties EXCLUDE, INCLUDE or PROJECT_PATHS."""
+
+EXCLUDE = """
+A list of modules that will not be imported at all."""
+
+FAILING = """
+A list of modules that must fail.
+
+This differs from EXCLUDE because modules in EXCLUDE aren't imported at
+all, but failing modules must exist, are imported, and then must fail
+when imported."""
+
+INCLUDE = """
+If non-empty, exactly the modules in the list will be loaded.
+This is not recursive - you need to list each module you want to include."""
+
+PROJECT_PATHS = """
+A list of paths to search from.
+
+If empty, guess the project paths from the current directory."""
+
+RAISE_EXCEPTIONS = """
+If True, stop importing at the first exception and print a stack trace.
+
+If False, all exceptions will be caught and reported on at the end."""
+
+SKIP_PREFIXES = """
+Ignore directories which start with one of these."""
+
+WARNINGS_ACTION = """
+Possible choices are: default, error, ignore, always, module, once
+
+`warnings.simplefilter` is set to this value while testing: see
+https://docs.python.org/3/library/warnings.html#the-warnings-filter
+for more details."""
 
 
 class ImportAllTest(unittest.TestCase):
-    """Import every Python module or file and fail on errors or warnings.
-
-    Derive from this class within your own project and most of the time
-    you are done.
-
-    Tests can be customized by overriding one of seven properties,
-    documented individually below:
-
-      ALL_SUBDIRECTORIES, CATCH_EXCEPTIONS, EXCLUDE, EXPECTED_TO_FAIL,
-      INCLUDE, PROJECT_PATHS, SKIP_PREFIXES, and WARNINGS_ACTION.
-
-    There are two ways to override a property:
-
-      * You can permanently override it in your test class,
-
-      * You can temporarily override it by setting an environment
-      variable `_IMPORT_ALL_<property name>`
-
-    For example, to turn warnings into errors, either set the property
-    WARNINGS_ACTION it in your class definition like this:
-
-        class ImportAllTest(import_all.ImportAllTest):
-           WARNINGS_ACTION = 'error'
-
-    or set the environment variable _IMPORT_ALL_WARNINGS_ACTION=True before
-    running the tests - perhaps like this:
-
-        _IMPORT_ALL_WARNINGS_ACTION=error pytest
-
-    The properties INCLUDE, EXCLUDE, PROJECT_PATH and SKIP_PREFIXES can be
-    lists of strings, or a string separated with colons like
-    'foo.mod1:foo.mod2'
-
-    INCLUDE and EXCLUDE match modules, and also allow * as a wildcard.
-    A single * matches any module segment, and a double ** matches any
-    remaining segments. For example,
-
-        INCLUDE = 'foo', 'bar.*', 'baz.**'
-
-      * matches `foo` but not `foo.foo`
-      * matches `bar.foo` but not `bar` or `bar.foo.bar`
-      * matches `baz.foo` as well as `baz.foo.bar` but not `baz`
-
-    NOTE: to reduce side-effects, `sys.modules` is restored to its
-    original condition after each import, but there might be other
-    side-effects from loading some specific module.
-
-    Use the EXCLUDE property to exclude modules with undesirable side
-    effects. In general, it is probably a bad idea to have significant
-    side-effects just from loading a module.
-    """
-
     ALL_SUBDIRECTORIES = False
-
-    """If True, search all subdirectories.
-
-    If False, stop searching with subdirectories that do not contain an
-    __init__.py file.
-
-    By default, the test attempts to import every Python module and file
-    reachable from its Python root directory.  This means ``import_all``
-    does not load .py files in subdirectories which contain .py files
-    but not a __init__.py file.
-
-    This turns out to be what you want most of the time, but if you want
-    import absolutely everything, set the ALL_SUBDIRECTORIES property
-    to be True.  If you want to import more specically, you can use the
-    properties EXCLUDE, INCLUDE or PROJECT_PATHS.
-    """
-
-    CATCH_EXCEPTIONS = False
-    """If CATCH_EXCEPTIONS is False, the first exception will stop the
-    test entirely and print a stack trace
-
-    If True, all exceptions will be caught and reported on at the end.
-    This is most useful when adding this to a new codebase with a lot of
-    import problems.
-    """
-
     EXCLUDE = None
-    """A list of modules names, or None.
-
-    Modules that appear in EXCLUDE will not be imported at all.
-    """
-
-    EXPECTED_TO_FAIL = ()
-    """A list of specific module names that are expected to fail.
-
-    This differs from EXCLUDE because modules in EXCLUDE aren't
-    imported at all, but the modules in EXPECTED_TO_FAIL must exist, are
-    imported, and then must fail when imported.
-    """
-
+    FAILING = ()
     INCLUDE = None
-    """A list of module names, or None.
-
-    If non-empty, exactly the modules in the list will be loaded.
-    INCLUDE isn't recursive - you need to list each module you want to include.
-    """
-
     PROJECT_PATHS = None
-    """A list or tuple of path roots that will be recusively loaded.
-
-    If empty, guess PROJECT_PATHS from the root Python directory that
-    contains the definition of the class.
-    """
-
+    RAISE_EXCEPTIONS = False
     SKIP_PREFIXES = '_', '.'
-    """Any directory which starts with a prefix from SKIP_PREFIXES is ignored
-    """
-
     WARNINGS_ACTION = 'default'
-    """A string telling what to do if a Python warning occurs.
-
-    Possible choices are: default, error, ignore, always, module, once
-
-    `warnings.simplefilter` is set to this value while testing: see
-    https://docs.python.org/3/library/warnings.html#the-warnings-filter
-    for more details.
-    """
 
     def __init__(self, *args, **kwds):
         super().__init__(*args, **kwds)
@@ -152,7 +145,7 @@ class ImportAllTest(unittest.TestCase):
     def test_all(self):
         successes, failures = self.import_all()
         self.assertTrue(successes or failures)
-        expected = sorted(_list(self.EXPECTED_TO_FAIL))
+        expected = sorted(_list(self.FAILING))
         for module, ex in failures:
             if module not in expected:
                 print('Failed ' + module, ex, '', sep='\n')
@@ -176,8 +169,8 @@ class ImportAllTest(unittest.TestCase):
                         successes.append(module)
                     except Exception as e:
                         if (
-                            self.CATCH_EXCEPTIONS
-                            or module in self.EXPECTED_TO_FAIL
+                            not self.RAISE_EXCEPTIONS
+                            or module in self.FAILING
                         ):
                             failures.append((module, e))
                         else:
@@ -307,7 +300,7 @@ variables.  This is convenient for temporarily turning features on or
 off while debugging.
 
 For example, to turn off catching exceptions, set the environment
-variable _IMPORT_ALL_CATCH_EXCEPTIONS=True
+variable _IMPORT_ALL_RAISE_EXCEPTIONS=True
 
 To set a boolean test property, use a string starting with t or T for
 True, or a string starting with f or F for False; any other string gives

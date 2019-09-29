@@ -5,24 +5,21 @@ import unittest
 
 
 class PropertiesTest(import_all.ImportAllTest):
-    CATCH_EXCEPTIONS = True
     PROJECT_PATHS = str(pathlib.Path(__file__).parent / 'edge' / 'edge')
     INCLUDE = 'edge.yes', 'edge.ok', 'edge.maybe', 'edge.sub.*'
     EXCLUDE = 'edge.no', 'edge.maybe', 'edge.sure'
-    EXPECTED_TO_FAIL = 'edge.ok', 'edge.sub.one'
+    FAILING = 'edge.ok', 'edge.sub.one'
 
 
 class EnvironmentVariablesTest(import_all.ImportAllTest):
     def __init__(self, *args, **kwds):
         old_env = dict(os.environ)
         os.environ.update(
-            _IMPORT_ALL_CATCH_EXCEPTIONS=str(PropertiesTest.CATCH_EXCEPTIONS),
+            _IMPORT_ALL_RAISE_EXCEPTIONS=str(PropertiesTest.RAISE_EXCEPTIONS),
             _IMPORT_ALL_PROJECT_PATHS=str(PropertiesTest.PROJECT_PATHS),
             _IMPORT_ALL_INCLUDE=':'.join(PropertiesTest.INCLUDE),
             _IMPORT_ALL_EXCLUDE=':'.join(PropertiesTest.EXCLUDE),
-            _IMPORT_ALL_EXPECTED_TO_FAIL=':'.join(
-                PropertiesTest.EXPECTED_TO_FAIL
-            ),
+            _IMPORT_ALL_FAILING=':'.join(PropertiesTest.FAILING),
         )
         try:
             super().__init__(*args, **kwds)
@@ -32,9 +29,8 @@ class EnvironmentVariablesTest(import_all.ImportAllTest):
 
 
 class ImportAllSubdirectoriesTest(import_all.ImportAllTest):
-    CATCH_EXCEPTIONS = True
     ALL_SUBDIRECTORIES = True
-    EXPECTED_TO_FAIL = (
+    FAILING = (
         'test.edge.edge.maybe',
         'test.edge.edge.no',
         'test.edge.edge.ok',
@@ -60,12 +56,12 @@ class SplitArgsTest(unittest.TestCase):
         self.assertEqual(values, {})
 
     def test_flags(self):
-        paths, values = self.split('foo --catch_exceptions bar --include=a:b')
+        paths, values = self.split('foo --raise_exceptions bar --include=a:b')
         self.assertEqual(paths, ['foo', 'bar'])
-        expected = {'CATCH_EXCEPTIONS': 'True', 'INCLUDE': 'a:b'}
+        expected = {'RAISE_EXCEPTIONS': 'True', 'INCLUDE': 'a:b'}
         self.assertEqual(values, expected)
 
-        _, values = self.split('foo --catch-exceptions bar --include=a:b')
+        _, values = self.split('foo --raise-exceptions bar --include=a:b')
         self.assertEqual(values, expected)
 
     def test_errors(self):
