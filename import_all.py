@@ -153,21 +153,26 @@ class ImportAllTest(unittest.TestCase):
         try:
             for module in self._all_imports(paths):
                 if self._accept(module):
-                    sys_modules = dict(sys.modules)
-                    try:
-                        importlib.invalidate_caches()
-                        importlib.import_module(module)
-                        successes.append(module)
-                    except Exception as e:
-                        if not self.RAISE_EXCEPTIONS or module in self.FAILING:
-                            failures.append((module, e))
-                        else:
-                            raise
-                    sys.modules.clear()
-                    sys.modules.update(sys_modules)
+                    self._import(module, successes, failures)
         finally:
             warnings.filters.pop(0)
         return successes, failures
+
+    def _import(self, module, successes, failures):
+        sys_modules = dict(sys.modules)
+        try:
+            importlib.invalidate_caches()
+            importlib.import_module(module)
+            successes.append(module)
+
+        except Exception as e:
+            if self.RAISE_EXCEPTIONS:
+                raise
+            failures.append((module, e))
+
+        finally:
+            sys.modules.clear()
+            sys.modules.update(sys_modules)
 
     def _guess_paths(self):
         sourcefile = inspect.getsourcefile(self.__class__)
