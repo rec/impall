@@ -137,11 +137,6 @@ class ImportAllTest(unittest.TestCase):
         self._exc = _ModuleMatcher(self.EXCLUDE)
         self._inc = _ModuleMatcher(self.INCLUDE)
 
-    @staticmethod
-    def properties():
-        props = set(dir(ImportAllTest)) - set(dir(unittest.TestCase))
-        return [a for a in props if a.isupper() and not a.startswith('_')]
-
     def test_all(self):
         successes, failures = self.import_all()
         self.assertTrue(successes or failures)
@@ -231,7 +226,7 @@ class ImportAllTest(unittest.TestCase):
         )
 
     def _read_env_variables(self):
-        for name in self.properties():
+        for name in PROPERTIES:
             env_name = ENV_PREFIX + name
             value = os.environ.get(env_name)
             if not value:
@@ -291,6 +286,9 @@ class _ModuleMatcher:
 
         return any(match(p) for p in self.parts_list)
 
+
+PROPERTIES = set(dir(ImportAllTest)) - set(dir(unittest.TestCase))
+PROPERTIES = sorted(a for a in PROPERTIES if a.isupper())
 
 ENV_PREFIX = '_IMPORT_ALL_'
 ENV_SEPARATOR = ':'
@@ -354,16 +352,14 @@ def _report(args, file=sys.stdout):
 
 
 def _split_args(args):
-    props = ImportAllTest.properties()
-
     paths = []
     values = {}
     for a in args:
         if a.startswith('-'):
             name, *rest = a.lstrip('-').split('=', 1)
             cname = name.upper().replace('-', '_')
-            if cname not in props:
-                print(props)
+            if cname not in PROPERTIES:
+                print(PROPERTIES)
                 raise ValueError('Cannot understand flag', a, cname)
             is_bool = isinstance(getattr(ImportAllTest, cname), bool)
 
