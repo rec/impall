@@ -58,6 +58,7 @@ effects. In general, it is probably a bad idea to have significant
 side-effects just from loading a module.
 """
 
+import argparse
 import importlib
 import inspect
 import itertools
@@ -355,6 +356,27 @@ def _split_path(path):
 
     old_path and components.insert(0, old_path)
     return components
+
+
+def _parse_args():
+    parser = argparse.ArgumentParser(description=_USAGE)
+    parser.add_argument('paths', nargs='*', default=[os.getcwd()])
+
+    for prop in PROPERTIES:
+        default = getattr(ImportAllTest, prop)
+
+        if isinstance(default, bool):
+            kwds = {'action': 'store_true'}
+        else:
+            if isinstance(default, (tuple, list)):
+                default = ':'.join(default)
+            kwds = {'default': default}
+
+        help = globals()[prop]
+        short, long = '-' + prop[0], '--' + prop
+        parser.add_argument(short, long, help=help, **kwds)
+
+    return parser.parse_args()
 
 
 _USAGE = """
