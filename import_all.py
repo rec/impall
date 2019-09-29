@@ -22,7 +22,7 @@ Tests are customized by overriding one of the following properties in the
 derived class:
 
     ALL_SUBDIRECTORIES, EXCLUDE, FAILING, INCLUDE, PROJECT_PATHS,
-    RAISE_EXCEPTIONS, SKIP_PREFIXES, and WARNINGS_ACTION.
+    RAISE_EXCEPTIONS, and WARNINGS_ACTION.
 
 For example, to turn warnings into errors, set the property
 WARNINGS_ACTION in the derived class definition, like this:
@@ -35,7 +35,7 @@ or if running as a command utility:
     $ import_all.py --warnings_action=error
     $ import_all.py -w error
 
-The properties INCLUDE, EXCLUDE, PROJECT_PATH and SKIP_PREFIXES can be
+The properties INCLUDE, EXCLUDE, and PROJECT_PATH can be
 lists of strings, or a string separated with colons like
 'foo.mod1:foo.mod2'
 
@@ -109,9 +109,6 @@ If True, stop importing at the first exception and print a stack trace.
 
 If False, all exceptions will be caught and reported on at the end."""
 
-SKIP_PREFIXES = """
-Ignore directories which start with one of these."""
-
 WARNINGS_ACTION = """
 Possible choices are: default, error, ignore, always, module, once
 
@@ -127,7 +124,6 @@ class ImportAllTest(unittest.TestCase):
     INCLUDE = None
     PROJECT_PATHS = None
     RAISE_EXCEPTIONS = False
-    SKIP_PREFIXES = '_', '.'
     WARNINGS_ACTION = 'default'
 
     def __init__(self, *args, **kwds):
@@ -163,10 +159,7 @@ class ImportAllTest(unittest.TestCase):
                         importlib.import_module(module)
                         successes.append(module)
                     except Exception as e:
-                        if (
-                            not self.RAISE_EXCEPTIONS
-                            or module in self.FAILING
-                        ):
+                        if not self.RAISE_EXCEPTIONS or module in self.FAILING:
                             failures.append((module, e))
                         else:
                             raise
@@ -204,15 +197,18 @@ class ImportAllTest(unittest.TestCase):
 
     def _walk_code(self, path):
         """
-        os.walk through subdirectories and files, ignoring any that begin
-        with any of the strings in `skip_prefixes`
+        os.walk through subdirectories and files`
         """
         for directory, sub_dirs, files in os.walk(path):
             base = os.path.basename(directory)
-            if any(base.startswith(p) for p in self.SKIP_PREFIXES) or (
-                not self.ALL_SUBDIRECTORIES
-                and directory != path
-                and not _has_init_file(directory)
+            if (
+                base.startswith('.')
+                or base == '__pycache__'
+                or (
+                    not self.ALL_SUBDIRECTORIES
+                    and directory != path
+                    and not _has_init_file(directory)
+                )
             ):
                 sub_dirs.clear()
             else:
