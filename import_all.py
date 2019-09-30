@@ -170,7 +170,7 @@ class ImportAllTest(unittest.TestCase):
         path = _python_path(os.path.dirname(sourcefile))
 
         for c in os.listdir(path):
-            if _has_init_file(c) and not c.startswith('__'):
+            if _is_python_dir(c):
                 yield c
 
     def _all_imports(self, paths):
@@ -186,7 +186,7 @@ class ImportAllTest(unittest.TestCase):
                     yield module
 
                     for f in files:
-                        if f.endswith('.py') and not f.startswith('__'):
+                        if f.endswith('.py') and not _is_ignored(f):
                             yield '%s.%s' % (module, f[:-3])
             finally:
                 sys.path[:] = sys_path
@@ -194,21 +194,19 @@ class ImportAllTest(unittest.TestCase):
     def _walk_code(self, path):
         """os.walk through subdirectories and files"""
         for directory, sub_dirs, files in os.walk(path):
-            if directory == path or self._accept_dir(directory):
+            if self._accept_dir(directory):
                 yield directory, files
             else:
                 sub_dirs.clear()
 
     def _accept_dir(self, directory):
-        base = os.path.basename(directory)
-        if base.startswith('.') or base == '__pycache__':
-            return False
-
-        return not self.MODULES or _has_init_file(directory)
+        if self.MODULES:
+            return _is_python_dir(directory)
+        return not _is_ignored(directory)
 
     def _accept(self, x):
         return (
-            not x.startswith('.')
+            not _is_ignored(x)
             and not self._exc(x)
             and (not self._inc or self._inc(x))
         )
@@ -266,9 +264,15 @@ PROPERTIES = sorted(a for a in PROPERTIES if a.isupper())
 ENV_SEPARATOR = ':'
 
 
-def _has_init_file(path):
+def _is_ignored(path):
+    b = os.path.basename(path)
+    return b.startswith('.') or b.startswith('__')
+
+
+def _is_python_dir(path):
     """Return True if `path` is a directory containing an __init__.py file"""
-    return os.path.exists(os.path.join(path, '__init__.py'))
+    init = os.path.join(path, '__init__.py')
+    return os.path.exists(init) and not _is_ignored(path)
 
 
 def _list(s):
@@ -282,7 +286,7 @@ def _python_path(path):
     Find the lowest directory in `path` and its parents that does not contain
     an __init__.py file
     """
-    while _has_init_file(path):
+    while _is_python_dir(path):
         path = os.path.dirname(path)
 
     return path
