@@ -211,25 +211,6 @@ class ImportAllTest(unittest.TestCase):
             sys.modules.clear()
             sys.modules.update(sys_modules)
 
-    def _convert_variable(self, name, value):
-        default = getattr(ImportAllTest, name)
-        if type(default) is str:
-            return value
-
-        if isinstance(default, bool):
-            value = value.lower()
-            if value.startswith('t'):
-                return True
-            if value.startswith('f'):
-                return False
-            raise ValueError
-
-        # It's a tuple of strings
-        assert type(default) in (type(None), tuple)
-        if value.lower() == 'None':  # Special case for convenience
-            return ()
-        return value.split(ENV_SEPARATOR)
-
 
 class _ModuleMatcher:
     """
