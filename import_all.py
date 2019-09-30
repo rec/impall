@@ -21,7 +21,7 @@ somewhere into your project).
 Tests are customized by overriding one of the following properties in the
 derived class:
 
-    ALL_SUBDIRECTORIES, EXCLUDE, FAILING, INCLUDE, PATHS,
+    EXCLUDE, FAILING, INCLUDE, MODULES, PATHS,
     RAISE_EXCEPTIONS, and WARNINGS_ACTION.
 
 For example, to turn warnings into errors, set the property
@@ -70,22 +70,6 @@ import warnings
 __author__ = 'Tom Ritchford <tom@swirly.com>'
 __version__ = '0.9.5'
 
-ALL_SUBDIRECTORIES = """
-If True, search all subdirectories.
-
-If False, stop searching with subdirectories that do not contain an
-__init__.py file.
-
-By default, the test attempts to import every Python module and file
-reachable from its Python root directory.  This means ``import_all``
-does not load .py files in subdirectories which contain .py files
-but not a __init__.py file.
-
-This turns out to be what you want most of the time, but if you want
-import absolutely everything, set the ALL_SUBDIRECTORIES property
-to be True.  If you want to import more specically, you can use the
-properties EXCLUDE, INCLUDE or PATHS."""
-
 EXCLUDE = """
 A list of modules that will not be imported at all."""
 
@@ -99,6 +83,13 @@ when imported."""
 INCLUDE = """
 If non-empty, exactly the modules in the list will be loaded.
 This is not recursive - you need to list each module you want to include."""
+
+MODULES = """
+If False, search all subdirectories.
+
+If True, stop searching with subdirectories that do not contain an
+__init__.py file.
+"""
 
 PATHS = """
 A list of paths to search from.
@@ -119,7 +110,7 @@ for more details."""
 
 
 class ImportAllTest(unittest.TestCase):
-    ALL_SUBDIRECTORIES = False
+    MODULES = False
     EXCLUDE = None
     FAILING = ()
     INCLUDE = None
@@ -213,7 +204,7 @@ class ImportAllTest(unittest.TestCase):
         if base.startswith('.') or base == '__pycache__':
             return False
 
-        return self.ALL_SUBDIRECTORIES or _has_init_file(directory)
+        return not self.MODULES or _has_init_file(directory)
 
     def _accept(self, x):
         return (

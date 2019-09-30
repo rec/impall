@@ -4,6 +4,7 @@ import unittest
 
 
 class PropertiesTest(import_all.ImportAllTest):
+    MODULES = True
     PATHS = str(pathlib.Path(__file__).parent / 'edge' / 'edge')
     INCLUDE = 'edge.yes', 'edge.ok', 'edge.maybe', 'edge.sub.*'
     EXCLUDE = 'edge.no', 'edge.maybe', 'edge.sure'
@@ -11,7 +12,6 @@ class PropertiesTest(import_all.ImportAllTest):
 
 
 class ImportAllSubdirectoriesTest(import_all.ImportAllTest):
-    ALL_SUBDIRECTORIES = True
     FAILING = (
         'test.edge.edge.maybe',
         'test.edge.edge.no',
