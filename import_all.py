@@ -21,7 +21,7 @@ somewhere into your project).
 Tests are customized by overriding one of the following properties in the
 derived class:
 
-    ALL_SUBDIRECTORIES, EXCLUDE, FAILING, INCLUDE, PROJECT_PATHS,
+    ALL_SUBDIRECTORIES, EXCLUDE, FAILING, INCLUDE, PATHS,
     RAISE_EXCEPTIONS, and WARNINGS_ACTION.
 
 For example, to turn warnings into errors, set the property
@@ -84,7 +84,7 @@ but not a __init__.py file.
 This turns out to be what you want most of the time, but if you want
 import absolutely everything, set the ALL_SUBDIRECTORIES property
 to be True.  If you want to import more specically, you can use the
-properties EXCLUDE, INCLUDE or PROJECT_PATHS."""
+properties EXCLUDE, INCLUDE or PATHS."""
 
 EXCLUDE = """
 A list of modules that will not be imported at all."""
@@ -100,7 +100,7 @@ INCLUDE = """
 If non-empty, exactly the modules in the list will be loaded.
 This is not recursive - you need to list each module you want to include."""
 
-PROJECT_PATHS = """
+PATHS = """
 A list of paths to search from.
 
 If empty, guess the project paths from the current directory."""
@@ -123,7 +123,7 @@ class ImportAllTest(unittest.TestCase):
     EXCLUDE = None
     FAILING = ()
     INCLUDE = None
-    PROJECT_PATHS = None
+    PATHS = None
     RAISE_EXCEPTIONS = False
     WARNINGS_ACTION = 'default'
 
@@ -146,7 +146,7 @@ class ImportAllTest(unittest.TestCase):
 
     def import_all(self):
         successes, failures = [], []
-        paths = self.PROJECT_PATHS
+        paths = self.PATHS
         paths = _list(paths or self._guess_paths())
 
         warnings.simplefilter(self.WARNINGS_ACTION)
@@ -302,12 +302,15 @@ def _python_path(path):
 
 
 def _report():
-    args = sys.argv[1:] or [os.getcwd()]
+    args = _parse_args()
     test_case = ImportAllTest()
-    paths, values = _split_args(args)
-    test_case.__dict__.update(values)
 
-    test_case.PROJECT_PATHS = list(test_case.PROJECT_PATHS or []) + paths
+    for attr, value in vars(args).items():
+        if value:
+            default = getattr(test_case, attr.upper())
+            if isinstance(default, (list, tuple)):
+                value = value.split(ENV_SEPARATOR)
+            setattr(test_case, attr.upper(), value)
 
     successes, failures = test_case.import_all()
     if successes:
@@ -318,31 +321,6 @@ def _report():
         failures = ['%s (%s)' % (m, e) for (m, e) in failures]
         print('Failures', *failures, sep='\n  ', file=sys.stderr)
         print(file=sys.stderr)
-
-
-def _split_args(args):
-    paths = []
-    values = {}
-    for a in args:
-        if a.startswith('-'):
-            name, *rest = a.lstrip('-').split('=', 1)
-            cname = name.upper().replace('-', '_')
-            if cname not in PROPERTIES:
-                print(PROPERTIES)
-                raise ValueError('Cannot understand flag', a, cname)
-            is_bool = isinstance(getattr(ImportAllTest, cname), bool)
-
-            if rest:
-                value = rest[0]
-            elif is_bool:
-                value = 'True'
-            else:
-                raise ValueError('Cannot understand flag', a)
-            values[cname] = value
-        else:
-            paths.append(a)
-
-    return paths, values
 
 
 def _split_path(path):
