@@ -1,5 +1,4 @@
 import import_all
-import os
 import pathlib
 import unittest
 
@@ -9,23 +8,6 @@ class PropertiesTest(import_all.ImportAllTest):
     INCLUDE = 'edge.yes', 'edge.ok', 'edge.maybe', 'edge.sub.*'
     EXCLUDE = 'edge.no', 'edge.maybe', 'edge.sure'
     FAILING = 'edge.ok', 'edge.sub.one'
-
-
-class EnvironmentVariablesTest(import_all.ImportAllTest):
-    def __init__(self, *args, **kwds):
-        old_env = dict(os.environ)
-        os.environ.update(
-            _IMPORT_ALL_RAISE_EXCEPTIONS=str(PropertiesTest.RAISE_EXCEPTIONS),
-            _IMPORT_ALL_PATHS=str(PropertiesTest.PATHS),
-            _IMPORT_ALL_INCLUDE=':'.join(PropertiesTest.INCLUDE),
-            _IMPORT_ALL_EXCLUDE=':'.join(PropertiesTest.EXCLUDE),
-            _IMPORT_ALL_FAILING=':'.join(PropertiesTest.FAILING),
-        )
-        try:
-            super().__init__(*args, **kwds)
-        finally:
-            os.environ.clear()
-            os.environ.update(old_env)
 
 
 class ImportAllSubdirectoriesTest(import_all.ImportAllTest):
