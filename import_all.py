@@ -201,23 +201,19 @@ class ImportAllTest(unittest.TestCase):
                 sys.path[:] = sys_path
 
     def _walk_code(self, path):
-        """
-        os.walk through subdirectories and files`
-        """
+        """os.walk through subdirectories and files"""
         for directory, sub_dirs, files in os.walk(path):
-            base = os.path.basename(directory)
-            if (
-                base.startswith('.')
-                or base == '__pycache__'
-                or (
-                    not self.ALL_SUBDIRECTORIES
-                    and directory != path
-                    and not _has_init_file(directory)
-                )
-            ):
-                sub_dirs.clear()
-            else:
+            if directory == path or self._accept_dir(directory):
                 yield directory, files
+            else:
+                sub_dirs.clear()
+
+    def _accept_dir(self, directory):
+        base = os.path.basename(directory)
+        if base.startswith('.') or base == '__pycache__':
+            return False
+
+        return self.ALL_SUBDIRECTORIES or _has_init_file(directory)
 
     def _accept(self, x):
         return (
