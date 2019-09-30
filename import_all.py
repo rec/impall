@@ -110,10 +110,10 @@ for more details."""
 
 
 class ImportAllTest(unittest.TestCase):
-    MODULES = False
     EXCLUDE = None
     FAILING = ()
     INCLUDE = None
+    MODULES = False
     PATHS = None
     RAISE_EXCEPTIONS = False
     WARNINGS_ACTION = 'default'
@@ -149,22 +149,6 @@ class ImportAllTest(unittest.TestCase):
             warnings.filters.pop(0)
         return successes, failures
 
-    def _import(self, module, successes, failures):
-        sys_modules = dict(sys.modules)
-        try:
-            importlib.invalidate_caches()
-            importlib.import_module(module)
-            successes.append(module)
-
-        except Exception as e:
-            if self.RAISE_EXCEPTIONS:
-                raise
-            failures.append((module, e))
-
-        finally:
-            sys.modules.clear()
-            sys.modules.update(sys_modules)
-
     def _guess_paths(self):
         sourcefile = inspect.getsourcefile(self.__class__)
         path = _python_path(os.path.dirname(sourcefile))
@@ -191,6 +175,13 @@ class ImportAllTest(unittest.TestCase):
             finally:
                 sys.path[:] = sys_path
 
+    def _accept(self, x):
+        return (
+            not _is_ignored(x)
+            and not self._exc(x)
+            and (not self._inc or self._inc(x))
+        )
+
     def _walk_code(self, path):
         """os.walk through subdirectories and files"""
         for directory, sub_dirs, files in os.walk(path):
@@ -204,12 +195,21 @@ class ImportAllTest(unittest.TestCase):
             return _is_python_dir(directory)
         return not _is_ignored(directory)
 
-    def _accept(self, x):
-        return (
-            not _is_ignored(x)
-            and not self._exc(x)
-            and (not self._inc or self._inc(x))
-        )
+    def _import(self, module, successes, failures):
+        sys_modules = dict(sys.modules)
+        try:
+            importlib.invalidate_caches()
+            importlib.import_module(module)
+            successes.append(module)
+
+        except Exception as e:
+            if self.RAISE_EXCEPTIONS:
+                raise
+            failures.append((module, e))
+
+        finally:
+            sys.modules.clear()
+            sys.modules.update(sys_modules)
 
     def _convert_variable(self, name, value):
         default = getattr(ImportAllTest, name)
