@@ -137,8 +137,7 @@ class ImportAllTest(unittest.TestCase):
 
     def import_all(self):
         successes, failures = [], []
-        paths = self.PATHS
-        paths = _list(paths or self._guess_paths())
+        paths = _list(self.PATHS or self._guess_paths())
 
         warnings.simplefilter(self.WARNINGS_ACTION)
         try:
