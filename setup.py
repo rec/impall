@@ -1,4 +1,4 @@
-import import_all
+import impall
 
 _classifiers = [
     'Development Status :: 4 - Beta',
@@ -16,17 +16,17 @@ if __name__ == '__main__':
     from setuptools import setup
 
     setup(
-        name='import_all',
-        version=import_all.__version__,
+        name='impall',
+        version=impall.__version__,
         author='Tom Ritchford',
         author_email='tom@swirly.com',
-        url='https://github.com/rec/import_all',
+        url='https://github.com/rec/impall',
         tests_require=['pytest'],
-        py_modules=['import_all'],
+        py_modules=['impall'],
         description='Try to import all modules below a given root',
         long_description=open('README.rst').read(),
         license='MIT',
         classifiers=_classifiers,
         keywords=['testing', 'modules'],
-        scripts=['import_all.py'],
+        scripts=['impall.py'],
     )

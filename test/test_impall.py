@@ -1,16 +1,16 @@
-import import_all
+import impall
 import pathlib
 import unittest
 
 
-class PropertiesTest(import_all.ImportAllTest):
+class PropertiesTest(impall.ImpAllTest):
     PATHS = str(pathlib.Path(__file__).parent / 'edge' / 'edge')
     INCLUDE = 'edge.yes', 'edge.ok', 'edge.maybe', 'edge.sub.*'
     EXCLUDE = 'edge.no', 'edge.maybe', 'edge.sure'
     FAILING = 'edge.ok', 'edge.sub.one'
 
 
-class ImportAllSubdirectoriesTest(import_all.ImportAllTest):
+class ImpAllSubdirectoriesTest(impall.ImpAllTest):
     MODULES = False
     PATHS = str(pathlib.Path(__file__).parent)
     FAILING = (
@@ -26,12 +26,12 @@ class ImportAllSubdirectoriesTest(import_all.ImportAllTest):
 
 class ModMatcherTest(unittest.TestCase):
     def test_empty(self):
-        matches = import_all._ModuleMatcher('')
+        matches = impall._ModuleMatcher('')
         self.assertFalse(matches(''))
         self.assertFalse(matches('foo'))
 
     def test_simple(self):
-        matches = import_all._ModuleMatcher('foo:bar.*:baz.**')
+        matches = impall._ModuleMatcher('foo:bar.*:baz.**')
         self.assertTrue(matches('foo'))
         self.assertFalse(matches('foo.foo'))
 

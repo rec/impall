@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
 
 """
-🏁  import_all: automatically import all Python modules for testing   🏁
+🏁  impall: automatically import all Python modules for testing   🏁
 
 Individually and separately imports each Python module or file in a project and
 reports warnings or failures at the end.
 
-import_all.py can be run as a unit test or as a command line utility.
+impall.py can be run as a unit test or as a command line utility.
 
 To run as a unit test, just inherit from the base class.
 
 For example, put the following code anywhere in your test directories:
 
-    import import_all
+    import impall
 
-    class ImportAllTest(import_all.ImportAllTest):
+    class ImpAllTest(impall.ImpAllTest):
         pass
 
-(or copy [this file](https://github.com/rec/import_all/blob/master/all_test.py)
+(or copy [this file](https://github.com/rec/impall/blob/master/all_test.py)
 somewhere into your project).
 
 Tests are customized by overriding one of the following properties in the
@@ -29,13 +29,13 @@ derived class:
 For example, to turn warnings into errors, set the property
 WARNINGS_ACTION in the derived class definition, like this:
 
-    class ImportAllTest(import_all.ImportAllTest):
+    class ImpAllTest(impall.ImpAllTest):
         WARNINGS_ACTION = 'error'
 
 or if running as a command utility:
 
-    $ import_all.py --warnings_action=error
-    $ import_all.py -w error
+    $ impall.py --warnings_action=error
+    $ impall.py -w error
 
 The properties INCLUDE, EXCLUDE, and PROJECT_PATH can be
 lists of strings, or a string separated with colons like
@@ -110,7 +110,7 @@ https://docs.python.org/3/library/warnings.html#the-warnings-filter
 for more details."""
 
 
-class ImportAllTest(unittest.TestCase):
+class ImpAllTest(unittest.TestCase):
     EXCLUDE = None
     FAILING = ()
     INCLUDE = None
@@ -126,7 +126,7 @@ class ImportAllTest(unittest.TestCase):
         self._inc = _ModuleMatcher(self.INCLUDE)
 
     def test_all(self):
-        successes, failures = self.import_all()
+        successes, failures = self.impall()
         self.assertTrue(successes or failures)
         expected = sorted(_list(self.FAILING))
         for module, ex in failures:
@@ -136,7 +136,7 @@ class ImportAllTest(unittest.TestCase):
         actual = sorted(m for m, ex in failures)
         self.assertEqual(actual, expected)
 
-    def import_all(self):
+    def impall(self):
         successes, failures = [], []
         paths = _list(self.PATHS or _python_path(os.getcwd()))
 
@@ -230,7 +230,7 @@ class _ModuleMatcher:
         return any(match(p) for p in self.parts_list)
 
 
-PROPERTIES = set(dir(ImportAllTest)) - set(dir(unittest.TestCase))
+PROPERTIES = set(dir(ImpAllTest)) - set(dir(unittest.TestCase))
 PROPERTIES = sorted(a for a in PROPERTIES if a.isupper())
 
 ENV_SEPARATOR = ':'
@@ -269,7 +269,7 @@ def _python_path(path):
 
 def _report():
     args = _parse_args()
-    test_case = ImportAllTest()
+    test_case = ImpAllTest()
 
     for attr, value in vars(args).items():
         if value:
@@ -278,7 +278,7 @@ def _report():
                 value = value.split(ENV_SEPARATOR)
             setattr(test_case, attr.upper(), value)
 
-    successes, failures = test_case.import_all()
+    successes, failures = test_case.impall()
     if successes:
         print('Successes', *successes, sep='\n  ')
         print()
@@ -307,7 +307,7 @@ def _parse_args():
     parser.add_argument('paths', nargs='*', default=[os.getcwd()])
 
     for prop in PROPERTIES:
-        default = getattr(ImportAllTest, prop)
+        default = getattr(ImpAllTest, prop)
 
         if isinstance(default, bool):
             kwds = {'action': 'store_true'}
@@ -324,12 +324,12 @@ def _parse_args():
 
 
 _USAGE = """
-import_all.py [path ...path]
+impall.py [path ...path]
 
    Individually and separately imports each Python file found on or below these
    paths and reports on any failures.
 
-   With no arguments, import_all imports all Python files found in
+   With no arguments, impall imports all Python files found in
    any Python directory (i.e. with a __init__.py file) below the current
    directory.
 """

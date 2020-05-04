@@ -1,4 +1,4 @@
-``import_all``: Automatically import everything
+``impall``: Automatically import everything
 -------------------------------------------------------------
 
 A three-line unit test in your project automatically imports
@@ -10,27 +10,27 @@ Why?
 Not every file is covered by unit tests; and unit tests won't report any new
 warnings that occur.
 
-``import_all`` is a single-file library with a unit test that automatically
+``impall`` is a single-file library with a unit test that automatically
 imports every Python file and module in your project.
 
 I drop ``include_all`` into each new project.  It takes seconds, it inevitably
 catches lots of dumb problems early, and it requires no maintenance.
 
 
-How to use ``import_all``
+How to use ``impall``
 ==============================
 
-Install it with ``pip install import_all``, and use it by adding
-`this tiny file <https://github.com/rec/import_all/blob/master/all_test.py>`_
-(`raw <https://raw.githubusercontent.com/rec/import_all/master/all_test.py>`_)
+Install it with ``pip install impall``, and use it by adding
+`this tiny file <https://github.com/rec/impall/blob/master/all_test.py>`_
+(`raw <https://raw.githubusercontent.com/rec/impall/master/all_test.py>`_)
 anywhere in a project - it looks like this:
 
 .. code-block:: python
 
-    import import_all
+    import impall
 
 
-    class ImportAllTest(import_all.ImportAllTest):
+    class ImpAllTest(impall.ImpAllTest):
         pass
 
 and most of the time that's all you need.
@@ -38,7 +38,7 @@ and most of the time that's all you need.
 Overriding properties
 =============================
 
-ImportAllTest has eight properties that can be overridden.
+ImpAllTest has eight properties that can be overridden.
 
   * ALL_SUBDIRECTORIES: Whether to search all subdirectories
   * CATCH_EXCEPTIONS: Catch all exceptions and report at the end
@@ -50,17 +50,17 @@ ImportAllTest has eight properties that can be overridden.
   * WARNINGS_ACTION: What to do on warnings
 
 Full documentation for each property is `here
-<https://github.com/rec/import_all/blob/master/import_all.py#L18-L133>`_.
+<https://github.com/rec/impall/blob/master/impall.py#L18-L133>`_.
 
 To permanently override a test property, set it in the derived class, like
 this:
 
 .. code-block:: python
 
-    import import_all
+    import impall
 
 
-    class ImportAllTest(import_all.ImportAllTest):
+    class ImpAllTest(impall.ImpAllTest):
         WARNINGS_ACTION = 'error'
 
 
@@ -69,17 +69,17 @@ runnning the test, like this:
 
 .. code-block:: bash
 
-    $ _IMPORT_ALL_WARNINGS_ACTION=error pytest
+    $ _IMPALL_WARNINGS_ACTION=error pytest
 
-Using ``import_all.py`` as a standalone program
+Using ``impall.py`` as a standalone program
 
-The file ``import_all.py`` is executable and is installed in the path by
+The file ``impall.py`` is executable and is installed in the path by
 ``pip``.  You can use it on projects that you are evaluating or debugging
 like this:
 
 .. code-block:: bash
 
-    $ import_all.py [directory ..directory]
+    $ impall.py [directory ..directory]
 
 where if no directory is specified it uses the current directory.
 
@@ -88,4 +88,4 @@ there are also command line flags for each property, so you can write:
 
 .. code-block:: bash
 
-    $ import_all.py --catch_exceptions --all_directories --exclude=foo/bar
+    $ impall.py --catch_exceptions --all_directories --exclude=foo/bar
