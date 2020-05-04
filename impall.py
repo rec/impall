@@ -62,9 +62,11 @@ side-effects just from loading a module.
 from __future__ import print_function
 import argparse
 import fnmatch
+import functools
 import importlib
 import os
 import sys
+import traceback
 import unittest
 import warnings
 
@@ -134,14 +136,28 @@ class ImpAllTest(unittest.TestCase):
 
     def test_all(self):
         successes, failures = self.impall()
-        self.assertTrue(successes or failures)
+        self.assertTrue(successes or failures, 'No tests were found')
         expected = sorted(_split(self.FAILING))
-        for module, ex in failures:
-            if module not in expected:
-                print('Failed ' + module, ex, '', sep='\n')
 
-        actual = sorted(m for m, ex in failures)
-        self.assertEqual(actual, expected)
+        failed = [(m, ex) for m, ex in failures if m not in expected]
+        failed_to_fail = [m for m in successes if m in expected]
+
+        if failed_to_fail:
+            print('Didn\'t fail when expected:', *sorted(failed_to_fail))
+
+        first = True
+        for module, ex in failed:
+            if first:
+                first = False
+            else:
+                print()
+            print(module + ':')
+            for line in ex.splitlines():
+                if 'File "<' not in line:
+                    print(' ', line)
+
+        self.assertTrue(not failed, 'Some tests failed')
+        self.assertTrue(not failed_to_fail, 'Some tests failed to fail')
 
     def impall(self):
         successes, failures = [], []
@@ -191,10 +207,10 @@ class ImpAllTest(unittest.TestCase):
 
         try:
             importlib.import_module(module)
-        except Exception as e:
+        except Exception:
             if self.RAISE_EXCEPTIONS:
                 raise
-            failures.append((file_path, e))
+            failures.append((file_path, traceback.format_exc()))
         else:
             successes.append(file_path)
         finally:
@@ -232,6 +248,7 @@ def _split(s):
     return s
 
 
+@functools.lru_cache()
 def _python_path(path):
     """
     Find the lowest directory in `path` and its parents that does not contain
