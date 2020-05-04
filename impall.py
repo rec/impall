@@ -59,10 +59,10 @@ Use the EXCLUDE property to exclude modules with undesirable side
 effects. In general, it is probably a bad idea to have significant
 side-effects just from loading a module.
 """
-
+from __future__ import print_function
 import argparse
+import fnmatch
 import importlib
-import itertools
 import os
 import sys
 import unittest
@@ -120,15 +120,22 @@ class ImpAllTest(unittest.TestCase):
     WARNINGS_ACTION = 'default'
 
     def __init__(self, *args, **kwds):
-        super().__init__(*args, **kwds)
+        unittest.TestCase.__init__(self, *args, **kwds)
 
-        self._exc = _ModuleMatcher(self.EXCLUDE)
-        self._inc = _ModuleMatcher(self.INCLUDE)
+        def split_pattern(s):
+            parts = _split(s)
+            return lambda x: any(fnmatch.fnmatch(x, p) for p in parts)
+
+        self._exc = split_pattern(self.EXCLUDE or ())
+        if self.INCLUDE is None:
+            self._inc = lambda s: True
+        else:
+            self._inc = split_pattern(self.INCLUDE)
 
     def test_all(self):
         successes, failures = self.impall()
         self.assertTrue(successes or failures)
-        expected = sorted(_list(self.FAILING))
+        expected = sorted(_split(self.FAILING))
         for module, ex in failures:
             if module not in expected:
                 print('Failed ' + module, ex, '', sep='\n')
@@ -138,96 +145,66 @@ class ImpAllTest(unittest.TestCase):
 
     def impall(self):
         successes, failures = [], []
-        paths = _list(self.PATHS or _python_path(os.getcwd()))
+        paths = _split(self.PATHS or _python_path(os.getcwd()))
 
         warnings.simplefilter(self.WARNINGS_ACTION)
-        for module in self._all_imports(paths):
-            if self._accept(module):
-                self._import(module, successes, failures)
+        for file in self._all_imports(paths):
+            self._import(file, successes, failures)
+
         warnings.filters.pop(0)
         return successes, failures
 
     def _all_imports(self, paths):
         for path in paths:
-            root = _python_path(path)
-            sys_path, sys.path = sys.path, sys.path[:]
-            sys.path.insert(0, root)
+            for directory, sub_dirs, files in os.walk(path):
+                if directory != path and not self._accept_dir(directory):
+                    sub_dirs.clear()
+                    continue
 
-            try:
-                for directory, files in self._walk_code(path):
-                    rel = os.path.relpath(directory, root)
-                    module = '.'.join(_split_path(rel))
+                if _is_python_dir(directory):
+                    yield directory
 
-                    yield module
+                for f in files:
+                    if f.endswith('.py') and not _is_ignored(f):
+                        yield os.path.join(directory, f)
 
-                    for f in files:
-                        if f.endswith('.py') and not _is_ignored(f):
-                            yield '%s.%s' % (module, f[:-3])
-            finally:
-                sys.path = sys_path
+    def _import(self, file, successes, failures):
+        root = _python_path(file)
+        path = file[:-3] if file.endswith('.py') else file
+        rel = os.path.relpath(path, root)
+        if not self._inc(rel) or self._exc(rel):
+            return
 
-    def _accept(self, x):
-        return (
-            not _is_ignored(x)
-            and not self._exc(x)
-            and (not self._inc or self._inc(x))
-        )
+        mparts = os.path.normpath(rel).split(os.sep)
+        module = '.'.join(mparts)
 
-    def _walk_code(self, path):
-        """os.walk through subdirectories and files"""
-        for directory, sub_dirs, files in os.walk(path):
-            if path == directory or self._accept_dir(directory):
-                yield directory, files
-            else:
-                sub_dirs.clear()
+        sys_path, sys.path = sys.path, sys.path[:]
+        sys_modules, sys.modules = sys.modules, dict(sys.modules)
 
-    def _import(self, module, successes, failures):
-        sys_modules = dict(sys.modules)
         try:
             importlib.invalidate_caches()
-            importlib.import_module(module)
-            successes.append(module)
+        except AttributeError:
+            pass
+        sys.path.append(root)
 
+        file_path = os.path.relpath(file, os.getcwd())
+
+        try:
+            importlib.import_module(module)
         except Exception as e:
             if self.RAISE_EXCEPTIONS:
                 raise
-            failures.append((module, e))
-
+            failures.append((file_path, e))
+        else:
+            successes.append(file_path)
         finally:
-            sys.modules.clear()
-            sys.modules.update(sys_modules)
+            sys.modules = sys_modules
+            sys.path = sys_path
 
     def _accept_dir(self, directory):
         if self.MODULES:
             return _is_python_dir(directory)
         return not _is_ignored(directory)
-
-
-class _ModuleMatcher:
-    """
-    Match glob-like patterns like foo, bar.*, or baz.**
-    """
-
-    def __init__(self, patterns):
-        self.parts_list = [p.split('.') for p in _list(patterns)]
-
-    def __bool__(self):
-        return bool(self.parts_list)
-
-    def __call__(self, module):
-        mparts = module.split('.')
-
-        def match(parts):
-            for part, mod in itertools.zip_longest(parts, mparts):
-                if mod is None:
-                    return False
-                if part == '**':
-                    return True
-                if part != '*' and part != mod:
-                    return False
-            return True
-
-        return any(match(p) for p in self.parts_list)
 
 
 PROPERTIES = set(dir(ImpAllTest)) - set(dir(unittest.TestCase))
@@ -247,10 +224,12 @@ def _is_python_dir(path):
     return os.path.exists(init) and not _is_ignored(path)
 
 
-def _list(s):
+def _split(s):
     if not s:
         return []
-    return s.split(':') if isinstance(s, str) else s
+    if isinstance(s, str):
+        return s.split(':')
+    return s
 
 
 def _python_path(path):
@@ -287,19 +266,6 @@ def _report():
         failures = ['%s (%s)' % (m, e) for (m, e) in failures]
         print('Failures', *failures, sep='\n  ', file=sys.stderr)
         print(file=sys.stderr)
-
-
-def _split_path(path):
-    """Use os.path.split repeatedly to split a path into components"""
-    old_path = None
-    components = []
-
-    while path != old_path:
-        (path, tail), old_path = os.path.split(path), path
-        tail and components.insert(0, tail)
-
-    old_path and components.insert(0, old_path)
-    return components
 
 
 def _parse_args():
