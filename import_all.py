@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 """
+🏁  import_all: automatically import all Python modules for testing   🏁
+
 Individually and separately imports each Python module or file in a project and
 reports warnings or failures at the end.
 
@@ -60,7 +62,6 @@ side-effects just from loading a module.
 
 import argparse
 import importlib
-import inspect
 import itertools
 import os
 import sys
@@ -113,7 +114,7 @@ class ImportAllTest(unittest.TestCase):
     EXCLUDE = None
     FAILING = ()
     INCLUDE = None
-    MODULES = False
+    MODULES = True
     PATHS = None
     RAISE_EXCEPTIONS = False
     WARNINGS_ACTION = 'default'
@@ -137,42 +138,33 @@ class ImportAllTest(unittest.TestCase):
 
     def import_all(self):
         successes, failures = [], []
-        paths = _list(self.PATHS or self._guess_paths())
+        paths = _list(self.PATHS or _python_path(os.getcwd()))
 
         warnings.simplefilter(self.WARNINGS_ACTION)
-        try:
-            for module in self._all_imports(paths):
-                if self._accept(module):
-                    self._import(module, successes, failures)
-        finally:
-            warnings.filters.pop(0)
+        for module in self._all_imports(paths):
+            if self._accept(module):
+                self._import(module, successes, failures)
+        warnings.filters.pop(0)
         return successes, failures
-
-    def _guess_paths(self):
-        sourcefile = inspect.getsourcefile(self.__class__)
-        path = _python_path(os.path.dirname(sourcefile))
-
-        for c in os.listdir(path):
-            if _is_python_dir(c):
-                yield c
 
     def _all_imports(self, paths):
         for path in paths:
             root = _python_path(path)
-            sys_path = sys.path[:]
+            sys_path, sys.path = sys.path, sys.path[:]
             sys.path.insert(0, root)
 
             try:
                 for directory, files in self._walk_code(path):
                     rel = os.path.relpath(directory, root)
                     module = '.'.join(_split_path(rel))
+
                     yield module
 
                     for f in files:
                         if f.endswith('.py') and not _is_ignored(f):
                             yield '%s.%s' % (module, f[:-3])
             finally:
-                sys.path[:] = sys_path
+                sys.path = sys_path
 
     def _accept(self, x):
         return (
@@ -184,15 +176,10 @@ class ImportAllTest(unittest.TestCase):
     def _walk_code(self, path):
         """os.walk through subdirectories and files"""
         for directory, sub_dirs, files in os.walk(path):
-            if self._accept_dir(directory):
+            if path == directory or self._accept_dir(directory):
                 yield directory, files
             else:
                 sub_dirs.clear()
-
-    def _accept_dir(self, directory):
-        if self.MODULES:
-            return _is_python_dir(directory)
-        return not _is_ignored(directory)
 
     def _import(self, module, successes, failures):
         sys_modules = dict(sys.modules)
@@ -209,6 +196,11 @@ class ImportAllTest(unittest.TestCase):
         finally:
             sys.modules.clear()
             sys.modules.update(sys_modules)
+
+    def _accept_dir(self, directory):
+        if self.MODULES:
+            return _is_python_dir(directory)
+        return not _is_ignored(directory)
 
 
 class _ModuleMatcher:
@@ -266,6 +258,9 @@ def _python_path(path):
     Find the lowest directory in `path` and its parents that does not contain
     an __init__.py file
     """
+    if not os.path.isdir(path):
+        path = os.path.dirname(path)
+
     while _is_python_dir(path):
         path = os.path.dirname(path)
 
