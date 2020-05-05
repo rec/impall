@@ -72,6 +72,7 @@ import warnings
 
 __author__ = 'Tom Ritchford <tom@swirly.com>'
 __version__ = '0.9.10'
+__all__ = 'ImpAllTest', 'python_root'
 
 EXCLUDE = """
 A list of modules that will not be imported at all."""
@@ -161,7 +162,7 @@ class ImpAllTest(unittest.TestCase):
 
     def impall(self):
         successes, failures = [], []
-        paths = _split(self.PATHS or _python_path(os.getcwd()))
+        paths = _split(self.PATHS or python_root(os.getcwd()))
 
         warnings.simplefilter(self.WARNINGS_ACTION)
         for file in self._all_imports(paths):
@@ -185,7 +186,7 @@ class ImpAllTest(unittest.TestCase):
                         yield os.path.join(directory, f)
 
     def _import(self, file, successes, failures):
-        root = _python_path(file)
+        root = python_root(file)
         path = file[:-3] if file.endswith('.py') else file
         rel = os.path.relpath(path, root)
         if not self._inc(rel) or self._exc(rel):
@@ -227,6 +228,21 @@ class ImpAllTest(unittest.TestCase):
         return not _is_ignored(directory)
 
 
+@functools.lru_cache()
+def python_root(path):
+    """
+    Find the lowest directory in `path` and its parents that does not contain
+    an __init__.py file
+    """
+    if not os.path.isdir(path):
+        path = os.path.dirname(path)
+
+    while _is_python_dir(path):
+        path = os.path.dirname(path)
+
+    return path
+
+
 PROPERTIES = set(dir(ImpAllTest)) - set(dir(unittest.TestCase))
 PROPERTIES = sorted(a for a in PROPERTIES if a.isupper())
 
@@ -250,21 +266,6 @@ def _split(s):
     if isinstance(s, str):
         return s.split(':')
     return s
-
-
-@functools.lru_cache()
-def _python_path(path):
-    """
-    Find the lowest directory in `path` and its parents that does not contain
-    an __init__.py file
-    """
-    if not os.path.isdir(path):
-        path = os.path.dirname(path)
-
-    while _is_python_dir(path):
-        path = os.path.dirname(path)
-
-    return path
 
 
 def _report():
