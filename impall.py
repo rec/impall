@@ -71,7 +71,7 @@ import unittest
 import warnings
 
 __author__ = 'Tom Ritchford <tom@swirly.com>'
-__version__ = '0.9.9'
+__version__ = '0.9.10'
 
 EXCLUDE = """
 A list of modules that will not be imported at all."""
