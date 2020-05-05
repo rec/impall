@@ -194,16 +194,18 @@ class ImpAllTest(unittest.TestCase):
         mparts = os.path.normpath(rel).split(os.sep)
         module = '.'.join(mparts)
 
-        sys_path, sys.path = sys.path, sys.path[:]
-        sys_modules, sys.modules = sys.modules, dict(sys.modules)
-
         try:
-            importlib.invalidate_caches()
+            invalidate_caches = importlib.invalidate_caches
         except AttributeError:
             pass
-        sys.path.append(root)
+        else:
+            invalidate_caches()
 
         file_path = os.path.relpath(file, os.getcwd())
+
+        saved_modules = dict(sys.modules)
+        saved_path = sys.path[:]
+        sys.path.append(root)
 
         try:
             importlib.import_module(module)
@@ -214,8 +216,10 @@ class ImpAllTest(unittest.TestCase):
         else:
             successes.append(file_path)
         finally:
-            sys.modules = sys_modules
-            sys.path = sys_path
+            for k in set(sys.modules).difference(saved_modules):
+                del sys.modules[k]
+            sys.modules.update(saved_modules)
+            sys.path[:] = saved_path
 
     def _accept_dir(self, directory):
         if self.MODULES:
