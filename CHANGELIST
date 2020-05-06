@@ -1,4 +1,7 @@
-## v0.9.10 - 2020-05-04
+## v0.9.11 - 2020-05-04
+* Make python_root() public
+
+## v0.9.10 - 2020-05-05
 * Fix issues from overwriting sys.modules
 
 ## v0.9.9 - 2020-05-04
