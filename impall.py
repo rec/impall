@@ -72,7 +72,7 @@ import warnings
 
 __author__ = 'Tom Ritchford <tom@swirly.com>'
 __version__ = '0.9.11'
-__all__ = 'ImpAllTest', 'python_root'
+__all__ = 'ImpAllTest', 'import_path'
 
 EXCLUDE = """
 A list of modules that will not be imported at all."""
@@ -162,7 +162,7 @@ class ImpAllTest(unittest.TestCase):
 
     def impall(self):
         successes, failures = [], []
-        paths = _split(self.PATHS or python_root(os.getcwd()))
+        paths = _split(self.PATHS or import_path(os.getcwd())[0])
 
         warnings.simplefilter(self.WARNINGS_ACTION)
         for file in self._all_imports(paths):
@@ -186,14 +186,13 @@ class ImpAllTest(unittest.TestCase):
                         yield os.path.join(directory, f)
 
     def _import(self, file, successes, failures):
-        root = python_root(file)
+        root, module = import_path(file)
         path = file[:-3] if file.endswith('.py') else file
+
+        # Wrong: see https://github.com/rec/impall/issues/14
         rel = os.path.relpath(path, root)
         if not self._inc(rel) or self._exc(rel):
             return
-
-        mparts = os.path.normpath(rel).split(os.sep)
-        module = '.'.join(mparts)
 
         try:
             invalidate_caches = importlib.invalidate_caches
@@ -229,18 +228,23 @@ class ImpAllTest(unittest.TestCase):
 
 
 @functools.lru_cache()
-def python_root(path):
+def import_path(path):
     """
-    Find the lowest directory in `path` and its parents that does not contain
-    an __init__.py file
+    Return a (path, module) pair that allows you to import the Python file or
+    directory at location path
     """
-    if not os.path.isdir(path):
-        path = os.path.dirname(path)
+    parts = []
 
-    while _is_python_dir(path):
-        path = os.path.dirname(path)
+    while not os.path.isdir(path) or _is_python_dir(path):
+        path, part = os.path.split(path)
+        if not part:
+            path and parts.append(path)
+            break
+        if part.endswith('.py'):
+            part = part[:-3]
+        parts.append(part)
 
-    return path
+    return path, '.'.join(reversed(parts))
 
 
 PROPERTIES = set(dir(ImpAllTest)) - set(dir(unittest.TestCase))

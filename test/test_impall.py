@@ -1,5 +1,6 @@
 import impall
 import pathlib
+import unittest
 
 
 class PropertiesTest(impall.ImpAllTest):
@@ -21,3 +22,16 @@ class ImpAllSubdirectoriesTest(impall.ImpAllTest):
         'test/edge/edge/sub2/sub',
         'test/edge/edge/sub2/sub/two.py',
     )
+
+
+class ImportPathTest(unittest.TestCase):
+    def test_one(self):
+        assert impall.import_path('test/edge/yes.py') == ('test/edge', 'yes')
+
+    def test_two(self):
+        assert impall.import_path('impall.py') == ('', 'impall')
+
+    def test_three(self):
+        root = 'test/edge/deep/one/two/three/four/five/six.py'
+        actual = impall.import_path(root)
+        assert actual == ('test/edge/deep/one', 'two.three.four.five.six')
