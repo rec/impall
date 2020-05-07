@@ -72,7 +72,7 @@ import warnings
 
 __author__ = 'Tom Ritchford <tom@swirly.com>'
 __version__ = '0.9.12'
-__all__ = 'ImpAllTest', 'import_path'
+__all__ = 'ImpAllTest', 'path_to_import'
 
 EXCLUDE = """
 A list of modules that will not be imported at all."""
@@ -162,7 +162,7 @@ class ImpAllTest(unittest.TestCase):
 
     def impall(self):
         successes, failures = [], []
-        paths = _split(self.PATHS or import_path(os.getcwd())[0])
+        paths = _split(self.PATHS or path_to_import(os.getcwd())[0])
 
         warnings.simplefilter(self.WARNINGS_ACTION)
         for file in self._all_imports(paths):
@@ -186,7 +186,7 @@ class ImpAllTest(unittest.TestCase):
                         yield os.path.join(directory, f)
 
     def _import(self, file, successes, failures):
-        root, module = import_path(file)
+        root, module = path_to_import(file)
         path = file[:-3] if file.endswith('.py') else file
 
         # Wrong: see https://github.com/rec/impall/issues/14
@@ -228,23 +228,45 @@ class ImpAllTest(unittest.TestCase):
 
 
 @functools.lru_cache()
-def import_path(path):
+def path_to_import(path):
     """
     Return a (path, module) pair that allows you to import the Python file or
     directory at location path
     """
     parts = []
 
+    if not os.path.exists(path):
+        raise FileNotFoundError(path)
+
+    if path.endswith('.py'):
+        path = path[:-3]
+
     while not os.path.isdir(path) or _is_python_dir(path):
         path, part = os.path.split(path)
         if not part:
             path and parts.append(path)
             break
-        if part.endswith('.py'):
-            part = part[:-3]
         parts.append(part)
 
     return path, '.'.join(reversed(parts))
+
+
+def import_file(path):
+    """
+    Given a path to a file or directory, imports it from the correct root
+    and returns the module
+    """
+
+    root, module_path = path_to_import(path)
+    if root:
+        old_path = sys.path[:]
+        sys.path.append(root)
+
+    try:
+        return importlib.import_module(module_path)
+    finally:
+        if root:
+            sys.path[:] = old_path
 
 
 PROPERTIES = set(dir(ImpAllTest)) - set(dir(unittest.TestCase))

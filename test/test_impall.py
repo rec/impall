@@ -24,14 +24,22 @@ class ImpAllSubdirectoriesTest(impall.ImpAllTest):
     )
 
 
-class ImportPathTest(unittest.TestCase):
+class PathToImportTest(unittest.TestCase):
     def test_one(self):
-        assert impall.import_path('test/edge/yes.py') == ('test/edge', 'yes')
+        actual = impall.path_to_import('test/edge/edge/yes.py')
+        assert actual == ('test/edge', 'edge.yes')
 
     def test_two(self):
-        assert impall.import_path('impall.py') == ('', 'impall')
+        assert impall.path_to_import('impall.py') == ('', 'impall')
 
     def test_three(self):
         root = 'test/edge/deep/one/two/three/four/five/six.py'
-        actual = impall.import_path(root)
+        actual = impall.path_to_import(root)
         assert actual == ('test/edge/deep/one', 'two.three.four.five.six')
+
+
+class ImportFileTest(unittest.TestCase):
+    def test_simple(self):
+        m = impall.import_file('test/edge/edge/yes.py')
+        assert m
+        assert m.HELLO == 'world'
