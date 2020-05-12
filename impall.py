@@ -196,7 +196,7 @@ class ImpAllTest(unittest.TestCase):
 
         try:
             invalidate_caches = importlib.invalidate_caches
-        except AttributeError:
+        except AttributeError:  # pragma: no cover
             pass
         else:
             invalidate_caches()

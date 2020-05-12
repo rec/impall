@@ -3,9 +3,15 @@
 [run]
 
 branch = True
-source = import_all.py
+source = impall
 
 [report]
 
-fail_under = 58
+fail_under = 70
 skip_covered = True
+
+exclude_lines =
+    pragma: no cover
+    if False:
+    if __name__ == .__main__.:
+    raise NotImplementedError
