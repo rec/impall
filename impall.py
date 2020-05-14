@@ -189,8 +189,7 @@ class ImpAllTest(unittest.TestCase):
         root, module = path_to_import(file)
         path = file[:-3] if file.endswith('.py') else file
 
-        # Wrong: see https://github.com/rec/impall/issues/14
-        rel = os.path.relpath(path, root)
+        rel = os.path.relpath(path, os.getcwd())
         if not self._inc(rel) or self._exc(rel):
             return
 

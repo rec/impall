@@ -5,8 +5,17 @@ import unittest
 
 class PropertiesTest(impall.ImpAllTest):
     PATHS = str(pathlib.Path(__file__).parent / 'edge' / 'edge')
-    INCLUDE = 'edge/yes', 'edge/ok', 'edge/maybe', 'edge/sub/*'
-    EXCLUDE = 'edge/no', 'edge/maybe', 'edge/sure'
+    INCLUDE = (
+        'test/edge/edge/yes',
+        'test/edge/edge/ok',
+        'test/edge/edge/maybe',
+        'test/edge/edge/sub/*',
+    )
+    EXCLUDE = (
+        'test/edge/edge/no',
+        'test/edge/edge/maybe',
+        'test/edge/edge/sure',
+    )
     FAILING = 'test/edge/edge/ok.py', 'test/edge/edge/sub/one.py'
 
 
