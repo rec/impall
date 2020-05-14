@@ -205,7 +205,7 @@ class ImpAllTest(unittest.TestCase):
 
         saved_modules = dict(sys.modules)
         saved_path = sys.path[:]
-        sys.path.append(root)
+        sys.path.insert(0, root)
 
         try:
             importlib.import_module(module)
