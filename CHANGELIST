@@ -1,3 +1,11 @@
+## v0.10.0 - 20/05/27
+
+* Delete VERSION
+* Match patterns from current directory (fix #14)
+* Insert paths at the front of sys.path
+* Turn on coverage testing
+* New function impall.import_file()
+
 ## v0.9.12 - 2020-05-04
 * New import_path() replaces python_root()
 
