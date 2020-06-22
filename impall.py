@@ -257,15 +257,13 @@ def import_file(path):
     """
 
     root, module_path = path_to_import(path)
-    if root:
-        old_path = sys.path[:]
-        sys.path.append(root)
+    old_path = sys.path[:]
+    sys.path.append(root or '.')
 
     try:
         return importlib.import_module(module_path)
     finally:
-        if root:
-            sys.path[:] = old_path
+        sys.path[:] = old_path
 
 
 PROPERTIES = set(dir(ImpAllTest)) - set(dir(unittest.TestCase))

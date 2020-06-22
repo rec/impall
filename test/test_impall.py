@@ -1,4 +1,5 @@
 import impall
+import os
 import pathlib
 import unittest
 
@@ -52,3 +53,14 @@ class ImportFileTest(unittest.TestCase):
         m = impall.import_file('test/edge/edge/yes.py')
         assert m
         assert m.HELLO == 'world'
+
+    def test_top(self):
+        # TODO: This does not actually test the issue it's supposed to
+        cwd = os.getcwd()
+        try:
+            os.chdir('test/edge')
+            m = impall.import_file('single.py')
+            assert m
+            assert m.HELLO == 'world'
+        finally:
+            os.chdir(cwd)
