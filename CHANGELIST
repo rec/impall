@@ -1,3 +1,7 @@
+## v0.10.1 - 20/06/22
+
+* Handle single file imports better
+
 ## v0.10.0 - 20/05/27
 
 * Delete VERSION
