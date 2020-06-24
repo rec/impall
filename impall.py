@@ -71,7 +71,7 @@ import unittest
 import warnings
 
 __author__ = 'Tom Ritchford <tom@swirly.com>'
-__version__ = '0.10.1'
+__version__ = '0.10.2'
 __all__ = 'ImpAllTest', 'path_to_import'
 
 EXCLUDE = """
