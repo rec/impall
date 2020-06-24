@@ -24,6 +24,7 @@ class ImpAllSubdirectoriesTest(impall.ImpAllTest):
     MODULES = False
     PATHS = str(pathlib.Path(__file__).parent)
     FAILING = (
+        'test/edge/edge/__main__.py',
         'test/edge/edge/maybe.py',
         'test/edge/edge/no.py',
         'test/edge/edge/ok.py',
