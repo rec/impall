@@ -237,6 +237,7 @@ def path_to_import(path):
     if not os.path.exists(path):
         raise FileNotFoundError(path)
 
+    path = str(path)  # Might be a Path
     if path.endswith('.py'):
         path = path[:-3]
 
@@ -258,7 +259,7 @@ def import_file(path):
 
     root, module_path = path_to_import(path)
     old_path = sys.path[:]
-    sys.path.append(root or '.')
+    sys.path.insert(0, root or '.')
 
     try:
         return importlib.import_module(module_path)
