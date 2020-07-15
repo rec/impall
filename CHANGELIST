@@ -1,3 +1,7 @@
+## v0.11.0 - 20/07/15
+
+* Move import directory to the front of sys.path
+
 ## v0.10.2 - 20/06/24
 
 * Test __main__.py (fix #15)
