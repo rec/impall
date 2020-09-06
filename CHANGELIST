@@ -1,3 +1,7 @@
+## v0.11.1 - 20/09/06
+
+* Add MANIFEST.in
+
 ## v0.11.0 - 20/07/15
 
 * Move import directory to the front of sys.path
