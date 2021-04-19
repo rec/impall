@@ -23,7 +23,7 @@ somewhere into your project).
 Tests are customized by overriding one of the following properties in the
 derived class:
 
-    EXCLUDE, FAILING, INCLUDE, MODULES, PATHS,
+    CLEAR_SYS_MODULES, EXCLUDE, FAILING, INCLUDE, MODULES, PATHS,
     RAISE_EXCEPTIONS, and WARNINGS_ACTION.
 
 For example, to turn warnings into errors, set the property
@@ -51,9 +51,9 @@ INCLUDE = 'foo', 'bar.*', 'baz.**'
 * matches `bar.foo` but not `bar` or `bar.foo.bar`
 * matches `baz.foo` as well as `baz.foo.bar` but not `baz`
 
-NOTE: to reduce side-effects, `sys.modules` is restored to its
-original condition after each import, but there might be other
-side-effects from loading some specific module.
+NOTE: to reduce side-effects, `sys.modules` is restored to its original
+condition after each import if CLEAR_SYS_MODULES is true, but there might be
+other side-effects from loading some specific module.
 
 Use the EXCLUDE property to exclude modules with undesirable side
 effects. In general, it is probably a bad idea to have significant
@@ -73,6 +73,12 @@ import warnings
 __author__ = 'Tom Ritchford <tom@swirly.com>'
 __version__ = '1.0.1'
 __all__ = 'ImpAllTest', 'path_to_import'
+
+CLEAR_SYS_MODULES = """
+If `True`, the default, `sys.modules` is reset after each import.
+
+This takes more time but finds more problems.
+"""
 
 EXCLUDE = """
 A list of modules that will not be imported at all."""
@@ -114,6 +120,7 @@ for more details."""
 
 
 class ImpAllTest(unittest.TestCase):
+    CLEAR_SYS_MODULES = True
     EXCLUDE = None
     FAILING = ()
     INCLUDE = None
@@ -202,7 +209,9 @@ class ImpAllTest(unittest.TestCase):
 
         file_path = os.path.relpath(file, os.getcwd())
 
-        saved_modules = dict(sys.modules)
+        if self.CLEAR_SYS_MODULES:
+            saved_modules = dict(sys.modules)
+
         saved_path = sys.path[:]
         sys.path.insert(0, root)
 
@@ -215,9 +224,10 @@ class ImpAllTest(unittest.TestCase):
         else:
             successes.append(file_path)
         finally:
-            for k in set(sys.modules).difference(saved_modules):
-                del sys.modules[k]
-            sys.modules.update(saved_modules)
+            if self.CLEAR_SYS_MODULES:
+                for k in set(sys.modules).difference(saved_modules):
+                    del sys.modules[k]
+                sys.modules.update(saved_modules)
             sys.path[:] = saved_path
 
     def _accept_dir(self, directory):

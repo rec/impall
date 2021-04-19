@@ -40,14 +40,14 @@ Overriding properties
 
 ImpAllTest has eight properties that can be overridden.
 
-  * ALL_SUBDIRECTORIES: Whether to search all subdirectories
-  * CATCH_EXCEPTIONS: Catch all exceptions and report at the end
-  * EXCLUDE: Which modules to exclude
-  * EXPECTED_TO_FAIL: Which modules are expected to fail
-  * INCLUDE: Which modules to exclude
-  * PROJECT_PATHS: Roots for searching subdirectories
-  * SKIP_PREFIXES: Skip subdirectories that start with these prefixes
-  * WARNINGS_ACTION: What to do on warnings
+  * CLEAR_SYS_MODULES: If `True`, `sys.modules` is reset after each import.
+  * EXCLUDE: A list of modules that will not be imported at all.
+  * FAILING: A list of modules that must fail.
+  * INCLUDE: If non-empty, exactly the modules in the list will be loaded.
+  * MODULES: If False, search all subdirectories.
+  * PATHS: A list of paths to search from.
+  * RAISE_EXCEPTIONS: If True, stop importing at the first exception
+  * WARNINGS_ACTION: One of: default, error, ignore, always, module, once
 
 Full documentation for each property is `here
 <https://github.com/rec/impall/blob/master/impall.py#L18-L133>`_.
