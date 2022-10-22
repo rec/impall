@@ -251,7 +251,10 @@ def path_to_import(path):
     if path.endswith('.py'):
         path = path[:-3]
 
-    while not os.path.isdir(path) or _is_python_dir(path):
+    def isdir(p):
+        return os.path.isdir(p) and not os.path.exists(p + '.py')
+
+    while not isdir(path) or _is_python_dir(path):
         path, part = os.path.split(path)
         if not part:
             path and parts.append(path)

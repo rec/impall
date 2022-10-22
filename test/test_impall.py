@@ -48,6 +48,11 @@ class PathToImportTest(unittest.TestCase):
         actual = impall.path_to_import(root)
         assert actual == ('test/edge/deep/one', 'two.three.four.five.six')
 
+    def test_issue_18(self):
+        root = 'test/sub/one.py'
+        actual = impall.path_to_import(root)
+        assert actual == ('test/sub', 'one')
+
 
 class ImportFileTest(unittest.TestCase):
     def test_simple(self):
