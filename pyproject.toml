@@ -16,6 +16,7 @@ repository = "https://github.com/rec/impall"
 version = "1.1.1"
 
 [tool.poetry.dependencies]
+python = '^3.7'
 
 [tool.poetry.group.dev.dependencies]
 coverage = "*"
