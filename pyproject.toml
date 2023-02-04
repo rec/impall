@@ -11,7 +11,7 @@ authors = ["Tom Ritchford <tom@swirly.com>"]
 description = "🛎 Test-import all modules below a given root 🛎"
 homepage = "https://github.com/rec/impall"
 name = "impall"
-readme = "README.rst"
+readme = "README.md"
 repository = "https://github.com/rec/impall"
 version = "1.1.2"
 
