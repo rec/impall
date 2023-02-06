@@ -1,0 +1,19 @@
+site_name: '🛎: `impall`: Test-import all modules below a given root 🛎'
+
+theme:
+  name: material
+
+  palette:
+    primary:
+      'cyan'
+
+  font:
+    text:
+      Roboto
+    code:
+      Roboto Mono
+
+extra_css: [extra.css]
+
+plugins:
+    - mkdocstrings
