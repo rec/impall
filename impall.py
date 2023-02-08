@@ -1,38 +1,36 @@
 #!/usr/bin/env python3
-
 """
 🏁  impall: automatically import all Python modules for testing   🏁
 
 Individually and separately imports each Python module or file in a project and
 reports warnings or failures at the end.
 
-impall.py can be run as a unit test or as a command line utility.
+### Running impall as a unit test
 
-To run as a unit test, just inherit from the base class.
-
-For example, put the following code anywhere in your test directories:
+Just inherit from the base class and it will
+automatically find and import each file, like this.
 
     import impall
 
     class ImpAllTest(impall.ImpAllTest):
         pass
 
-(or copy [this file](https://github.com/rec/impall/blob/master/all_test.py)
-somewhere into your project).
+(You can copy [this file](https://github.com/rec/impall/blob/master/all_test.py)
+into your project if you like.)
 
-Tests are customized by overriding one of the following properties in the
-derived class:
+Tests are customized by overriding one of these following properties in the
+derived class.
 
     CLEAR_SYS_MODULES, EXCLUDE, FAILING, INCLUDE, MODULES, PATHS,
     RAISE_EXCEPTIONS, and WARNINGS_ACTION.
 
 For example, to turn warnings into errors, set the property
-WARNINGS_ACTION in the derived class definition, like this:
+WARNINGS_ACTION in the derived class definition, like this.
 
     class ImpAllTest(impall.ImpAllTest):
         WARNINGS_ACTION = 'error'
 
-or if running as a command utility:
+## Running impall as a command-line utility
 
     $ impall.py --warnings_action=error
     $ impall.py -w error
@@ -51,7 +49,9 @@ INCLUDE = 'foo', 'bar.*', 'baz.**'
 * matches `bar.foo` but not `bar` or `bar.foo.bar`
 * matches `baz.foo` as well as `baz.foo.bar` but not `baz`
 
-NOTE: to reduce side-effects, `sys.modules` is restored to its original
+### A note on side-effects
+
+to reduce side-effects, `sys.modules` is restored to its original
 condition after each import if CLEAR_SYS_MODULES is true, but there might be
 other side-effects from loading some specific module.
 

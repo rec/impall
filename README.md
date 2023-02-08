@@ -1,4 +1,4 @@
-# `impall`: Automatically import everything
+# 🛎 `impall`: Test-import all modules below a given root 🛎
 
 A three-line unit test in your project automatically imports every
 Python file and module in it, optionally testing for warnings.
