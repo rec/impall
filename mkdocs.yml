@@ -5,7 +5,7 @@ theme:
 
   palette:
     primary:
-      'cyan'
+      'blue'
 
   font:
     text:
