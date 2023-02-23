@@ -1,90 +1,61 @@
-# 🛎 `impall`: Test-import all modules below a given root 🛎
+🏁  impall: automatically import all Python modules for testing   🏁
 
-A three-line unit test in your project automatically imports every
-Python file and module in it, optionally testing for warnings.
+Individually and separately imports each Python module or file in a project and
+reports warnings or failures at the end.
 
-## Why?
+### Running impall as a unit test
 
-Not every file is covered by unit tests; and unit tests won\'t report
-any new warnings that occur.
+Just inherit from the base class and it will
+automatically find and import each file, like this.
 
-`impall` is a single-file library with a unit test that automatically
-imports every Python file and module in your project.
+    import impall
 
-I drop `include_all` into each new project. It takes seconds, it
-inevitably catches lots of dumb problems early, and it requires no
-maintenance.
+    class ImpAllTest(impall.ImpAllTest):
+        pass
 
-## How to use `impall`
+(You can copy [this file](https://github.com/rec/impall/blob/master/all_test.py)
+into your project if you like.)
 
-Install it with `pip install impall`, and use it by adding [this tiny
-file](https://github.com/rec/impall/blob/master/all_test.py)
-([raw](https://raw.githubusercontent.com/rec/impall/master/all_test.py))
-anywhere in a project - it looks like this:
+Tests are customized by overriding one of these following properties in the
+derived class.
 
-``` python
-import impall
+    CLEAR_SYS_MODULES, EXCLUDE, FAILING, INCLUDE, MODULES, PATHS,
+    RAISE_EXCEPTIONS, and WARNINGS_ACTION.
+
+For example, to turn warnings into errors, set the property
+WARNINGS_ACTION in the derived class definition, like this.
+
+    class ImpAllTest(impall.ImpAllTest):
+        WARNINGS_ACTION = 'error'
+
+## Running impall as a command-line utility
+
+    $ impall.py --warnings_action=error
+    $ impall.py -w error
+
+The properties INCLUDE, EXCLUDE, and PROJECT_PATH can be
+lists of strings, or a string separated with colons like
+'foo.mod1:foo.mod2'
+
+INCLUDE and EXCLUDE match modules, and also allow * as a wildcard.
+A single * matches any module segment, and a double ** matches any
+remaining segments. For example,
+
+INCLUDE = 'foo', 'bar.*', 'baz.**'
+
+* matches `foo` but not `foo.foo`
+* matches `bar.foo` but not `bar` or `bar.foo.bar`
+* matches `baz.foo` as well as `baz.foo.bar` but not `baz`
+
+### A note on side-effects
+
+to reduce side-effects, `sys.modules` is restored to its original
+condition after each import if CLEAR_SYS_MODULES is true, but there might be
+other side-effects from loading some specific module.
+
+Use the EXCLUDE property to exclude modules with undesirable side
+effects. In general, it is probably a bad idea to have significant
+side-effects just from loading a module.
 
 
-class ImpAllTest(impall.ImpAllTest):
-    pass
-```
-
-and most of the time that\'s all you need.
-
-## Overriding properties
-
-ImpAllTest has eight properties that can be overridden.
-
-> -   CLEAR_SYS_MODULES: If [True]{.title-ref},
->     [sys.modules]{.title-ref} is reset after each import.
-> -   EXCLUDE: A list of modules that will not be imported at all.
-> -   FAILING: A list of modules that must fail.
-> -   INCLUDE: If non-empty, exactly the modules in the list will be
->     loaded.
-> -   MODULES: If False, search all subdirectories.
-> -   PATHS: A list of paths to search from.
-> -   RAISE_EXCEPTIONS: If True, stop importing at the first exception
-> -   WARNINGS_ACTION: One of: default, error, ignore, always, module,
->     once
-
-Full documentation for each property is
-[here](https://github.com/rec/impall/blob/master/impall.py#L18-L133).
-
-To permanently override a test property, set it in the derived class,
-like this:
-
-``` python
-import impall
-
-
-class ImpAllTest(impall.ImpAllTest):
-    WARNINGS_ACTION = 'error'
-```
-
-To temporarily override a test property, set an environment variable
-before runnning the test, like this:
-
-``` bash
-$ _IMPALL_WARNINGS_ACTION=error pytest
-```
-
-Using `impall.py` as a standalone program
-
-The file `impall.py` is executable and is installed in the path by
-`pip`. You can use it on projects that you are evaluating or debugging
-like this:
-
-``` bash
-$ impall.py [directory ..directory]
-```
-
-where if no directory is specified it uses the current directory.
-
-You can use environment variables to set properties as above and for
-convenience there are also command line flags for each property, so you
-can write:
-
-``` bash
-$ impall.py --catch_exceptions --all_directories --exclude=foo/bar
-```
+### [API Documentation](https://rec.github.io/impall#impall--api-documentation)
