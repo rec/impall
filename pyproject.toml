@@ -8,7 +8,7 @@ auto = true
 
 [tool.poetry]
 authors = ["Tom Ritchford <tom@swirly.com>"]
-description = "🛎 Test-import all modules below a given root 🛎"
+description = "🛎 Test-import all modules 🛎"
 homepage = "https://github.com/rec/impall"
 name = "impall"
 readme = "README.md"
