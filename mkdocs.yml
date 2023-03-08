@@ -1,11 +1,11 @@
-site_name: '🛎: `impall`: Test-import all modules below a given root 🛎'
+site_name: '🛎: `impall`: Test-import all modules 🛎'
 
 theme:
   name: material
 
   palette:
     primary:
-      'blue'
+      'cyan'
 
   font:
     text:
