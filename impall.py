@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-🏁  impall: automatically import all Python modules for testing   🏁
+# 🛎 Test-import all modules 🛎
 
 Individually and separately imports each Python module or file in a project and
 reports warnings or failures at the end.
@@ -15,7 +15,8 @@ automatically find and import each file, like this.
     class ImpAllTest(impall.ImpAllTest):
         pass
 
-(You can copy [this file](https://github.com/rec/impall/blob/master/all_test.py)
+(You can copy
+[this file](https://github.com/rec/impall/blob/master/all_test.py)
 into your project if you like.)
 
 Tests are customized by overriding one of these following properties in the
