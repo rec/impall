@@ -199,13 +199,7 @@ class ImpAllTest(unittest.TestCase):
         if not self._inc(rel) or self._exc(rel):
             return
 
-        try:
-            invalidate_caches = importlib.invalidate_caches
-        except AttributeError:  # pragma: no cover
-            pass
-        else:
-            invalidate_caches()
-
+        importlib.invalidate_caches()
         file_path = os.path.relpath(file, os.getcwd())
 
         if self.CLEAR_SYS_MODULES:
