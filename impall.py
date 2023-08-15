@@ -60,8 +60,6 @@ Use the EXCLUDE property to exclude modules with undesirable side
 effects. In general, it is probably a bad idea to have significant
 side-effects just from loading a module.
 """
-from __future__ import print_function
-
 import argparse
 import fnmatch
 import functools
