@@ -128,18 +128,16 @@ class ImpAllTest(unittest.TestCase):
     RAISE_EXCEPTIONS = False
     WARNINGS_ACTION = 'default'
 
-    def __init__(self, *args, **kwds):
-        unittest.TestCase.__init__(self, *args, **kwds)
+    @functools.cached_property
+    def _exc(self):
+        return _split_pattern(self.EXCLUDE or ())
 
-        def split_pattern(s):
-            parts = _split(s)
-            return lambda x: any(fnmatch.fnmatch(x, p) for p in parts)
-
-        self._exc = split_pattern(self.EXCLUDE or ())
+    @functools.cached_property
+    def _inc(self):
         if self.INCLUDE is None:
-            self._inc = lambda s: True
+            return lambda s: True
         else:
-            self._inc = split_pattern(self.INCLUDE)
+            return _split_pattern(self.INCLUDE)
 
     def test_all(self):
         successes, failures = self.impall()
@@ -300,6 +298,11 @@ def _split(s):
     if isinstance(s, str):
         return s.split(':')
     return s
+
+
+def _split_pattern(s):
+    parts = _split(s)
+    return lambda x: any(fnmatch.fnmatch(x, p) for p in parts)
 
 
 def _report():
