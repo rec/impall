@@ -74,7 +74,7 @@ __author__ = 'Tom Ritchford <tom@swirly.com>'
 __all__ = 'ImpAllTest', 'path_to_import'
 
 CLEAR_SYS_MODULES = """
-If `True`, the default, `sys.modules` is reset after each import.
+If `CLEAR_SYS_MODULES` IS `True`, the default, `sys.modules` is reset after each import.
 
 This takes more time but finds more problems.
 """
@@ -94,9 +94,9 @@ If non-empty, exactly the modules in the list will be loaded.
 This is not recursive - you need to list each module you want to include."""
 
 MODULES = """
-If False, search all subdirectories.
+If MODULES is False, search all subdirectories.
 
-If True, stop searching with subdirectories that do not contain an
+If MODULES is True, the default, do not search subdirectories that do not contain an
 __init__.py file.
 """
 
@@ -108,7 +108,7 @@ If empty, guess the project paths from the current directory."""
 RAISE_EXCEPTIONS = """
 If True, stop importing at the first exception and print a stack trace.
 
-If False, all exceptions will be caught and reported on at the end."""
+If False, the default, all exceptions will be caught and reported on at the end."""
 
 WARNINGS_ACTION = """
 Possible choices are: default, error, ignore, always, module, once
@@ -284,6 +284,8 @@ PROPERTIES = sorted(a for a in _PROPERTIES if a.isupper())
 
 ENV_SEPARATOR = ':'
 
+_NO = 'NO_'
+
 
 def _is_ignored(path):
     b = os.path.basename(path)
@@ -311,11 +313,15 @@ def _report():
     test_case = ImpAllTest()
 
     for attr, value in vars(args).items():
-        if value:
-            default = getattr(test_case, attr.upper())
+        if attr.startswith(_NO):
+            attr = attr[len(_NO) :]
+            value = not value
+
+        default = getattr(test_case, attr, _NO)
+        if default is not _NO and (isinstance(value, bool) or value):
             if isinstance(default, (list, tuple)):
                 value = value.split(ENV_SEPARATOR)
-            setattr(test_case, attr.upper(), value)
+            setattr(test_case, attr, value)
 
     successes, failures = test_case.impall()
     if successes:
@@ -334,17 +340,21 @@ def _parse_args():
 
     for prop in PROPERTIES:
         default = getattr(ImpAllTest, prop)
-
+        help = globals()[prop]
         if isinstance(default, bool):
             kwds = {'action': 'store_true'}
+            if default:
+                prop = _NO + prop
+        elif isinstance(default, (tuple, list)):
+            kwds = {'default': ':'.join(default)}
         else:
-            if isinstance(default, (tuple, list)):
-                default = ':'.join(default)
             kwds = {'default': default}
 
-        help = globals()[prop]
         short, long = '-' + prop[0], '--' + prop
-        parser.add_argument(short, long, help=help, **kwds)
+        if short == '-N':
+            parser.add_argument(long, help=help, **kwds)
+        else:
+            parser.add_argument(short, long, help=help, **kwds)
 
     return parser.parse_args()
 
