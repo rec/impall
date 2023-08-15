@@ -61,6 +61,7 @@ effects. In general, it is probably a bad idea to have significant
 side-effects just from loading a module.
 """
 from __future__ import print_function
+
 import argparse
 import fnmatch
 import functools
@@ -280,8 +281,8 @@ def import_file(path):
         sys.path[:] = old_path
 
 
-PROPERTIES = set(dir(ImpAllTest)) - set(dir(unittest.TestCase))
-PROPERTIES = sorted(a for a in PROPERTIES if a.isupper())
+_PROPERTIES = set(dir(ImpAllTest)) - set(dir(unittest.TestCase))
+PROPERTIES = sorted(a for a in _PROPERTIES if a.isupper())
 
 ENV_SEPARATOR = ':'
 
