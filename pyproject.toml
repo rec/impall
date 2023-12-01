@@ -13,7 +13,7 @@ homepage = "https://github.com/rec/impall"
 name = "impall"
 readme = "README.md"
 repository = "https://github.com/rec/impall"
-version = "1.4.0"
+version = "1.4.1"
 
 [tool.poetry.dependencies]
 python = '>=3.8'
