@@ -31,8 +31,8 @@ WARNINGS_ACTION in the derived class definition, like this.
 
 ## Running impall as a command-line utility
 
-    $ impall.py --warnings_action=error
-    $ impall.py -w error
+    $ impall --warnings_action=error
+    $ impall -w error
 
 The properties INCLUDE, EXCLUDE, and PROJECT_PATH can be
 lists of strings, or a string separated with colons like
@@ -42,11 +42,14 @@ INCLUDE and EXCLUDE match modules, and also allow * as a wildcard.
 A single * matches any module segment, and a double ** matches any
 remaining segments. For example,
 
-INCLUDE = 'foo', 'bar.*', 'baz.**'
+`INCLUDE = 'foo', 'bar.*', 'baz.**'`
 
 * matches `foo` but not `foo.foo`
 * matches `bar.foo` but not `bar` or `bar.foo.bar`
 * matches `baz.foo` as well as `baz.foo.bar` but not `baz`
+
+(For legacy users of this package, using `impall.py` still works for this purpose
+but is deprecated and may be removed in a later release.)
 
 ### A note on side-effects
 
@@ -57,6 +60,5 @@ other side-effects from loading some specific module.
 Use the EXCLUDE property to exclude modules with undesirable side
 effects. In general, it is probably a bad idea to have significant
 side-effects just from loading a module.
-
 
 ### [API Documentation](https://rec.github.io/impall#impall--api-documentation)

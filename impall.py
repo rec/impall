@@ -305,7 +305,8 @@ def _split_pattern(s):
     return lambda x: any(fnmatch.fnmatch(x, p) for p in parts)
 
 
-def _report():
+def report():
+    """Test all files in a directory from the command line"""
     args = _parse_args()
     test_case = ImpAllTest()
 
@@ -369,4 +370,4 @@ impall.py [path ...path]
 
 
 if __name__ == '__main__':
-    _report()
+    report()
