@@ -30,7 +30,6 @@ ruff = "*"
 
 [tool.poetry.scripts]
 impall = 'impall:report'
-'impall.py' = 'impall:report'  # deprecated
 
 [tool.coverage]
 [tool.coverage.run]

@@ -48,9 +48,6 @@ remaining segments. For example,
 * matches `bar.foo` but not `bar` or `bar.foo.bar`
 * matches `baz.foo` as well as `baz.foo.bar` but not `baz`
 
-(For legacy users of this package, using `impall.py` still works for this purpose
-but is deprecated and may be removed in a later release.)
-
 ### A note on side-effects
 
 to reduce side-effects, `sys.modules` is restored to its original
