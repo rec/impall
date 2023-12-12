@@ -311,6 +311,7 @@ def report():
     test_case = ImpAllTest()
 
     for attr, value in vars(args).items():
+        attr = attr.upper()
         if attr.startswith(_NO):
             attr = attr[len(_NO) :]
             value = not value
