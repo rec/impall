@@ -14,6 +14,7 @@ name = "impall"
 readme = "README.md"
 repository = "https://github.com/rec/impall"
 version = "1.5.1"
+documentation = "https://rec.github.io/impall"
 
 [tool.poetry.dependencies]
 python = '>=3.8'
