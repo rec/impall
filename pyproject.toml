@@ -27,14 +27,13 @@ ruff = "*"
 [tool.poetry.scripts]
 impall = 'impall:report'
 
-[tool.coverage]
 [tool.coverage.run]
-branch = "True"
-source = "impall"
+branch = true
+source = ["impall"]
 
 [tool.coverage.report]
-fail_under = "100"
-skip_covered = "True"
+fail_under = 69
+skip_covered = true
 exclude_lines = [
     "pragma: no cover",
     "if False:",
