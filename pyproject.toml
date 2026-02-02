@@ -30,13 +30,11 @@ auto = true
 [dependency-groups]
 dev = [
     "coverage",
-    "flake8",
     "pyfakefs",
     "pytest",
-    "black",
-    "isort",
-    "mypy",
     "ruff",
+    "pyupgrade>=3.21.2",
+    "ty>=0.0.14",
 ]
 
 [build-system]
@@ -50,12 +48,7 @@ source = ["impall"]
 [tool.coverage.report]
 fail_under = 69
 skip_covered = true
-exclude_lines = [
-    "pragma: no cover",
-    "if False:",
-    "if __name__ == .__main__.:",
-    "raise NotImplementedError",
-]
+exclude_lines = ["pragma: no cover", "if False:", "if __name__ == .__main__.:", "raise NotImplementedError"]
 
 
 [tool.ruff]
