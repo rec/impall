@@ -150,7 +150,7 @@ class ImpAllTest(unittest.TestCase):
         failed_to_fail = [m for m in successes if m in expected]
 
         if failed_to_fail:
-            print('Didn\'t fail when expected:', *sorted(failed_to_fail))
+            print("Didn't fail when expected:", *sorted(failed_to_fail))
 
         first = True
         for module, ex in failed:
@@ -171,7 +171,7 @@ class ImpAllTest(unittest.TestCase):
         failures: t.List[t.Tuple[str, str]] = []
         paths = _split(self.PATHS or path_to_import(os.getcwd())[0])
 
-        warnings.simplefilter(self.WARNINGS_ACTION)  # type: ignore[arg-type]
+        warnings.simplefilter(self.WARNINGS_ACTION)
         for file in self._all_imports(paths):
             self._import(file, successes, failures)
 
@@ -192,7 +192,12 @@ class ImpAllTest(unittest.TestCase):
                     if f.endswith('.py') and not _is_ignored(f):
                         yield os.path.join(directory, f)
 
-    def _import(self, file: str, successes: t.List[str], failures: t.List[t.Tuple[str, str]]) -> None:
+    def _import(
+        self,
+        file: str,
+        successes: t.List[str],
+        failures: t.List[t.Tuple[str, str]],
+    ) -> None:
         root, module = path_to_import(file)
         path = file[:-3] if file.endswith('.py') else file
 
@@ -230,7 +235,7 @@ class ImpAllTest(unittest.TestCase):
         return not _is_ignored(directory)
 
 
-@functools.lru_cache()
+@functools.lru_cache
 def path_to_import(path: str) -> t.Tuple[str, str]:
     """
     Return a (path, module) pair that allows you to import the Python file or
@@ -332,7 +337,7 @@ def report() -> None:
         print()
 
     if failures:
-        fail = ['%s (%s)' % (m, e) for (m, e) in failures]
+        fail = [f'{m} ({e})' for (m, e) in failures]
         print('Failures', *fail, sep='\n  ', file=sys.stderr)
         print(file=sys.stderr)
 
