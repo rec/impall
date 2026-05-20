@@ -3,7 +3,7 @@ revision = 3
 requires-python = ">=3.10"
 
 [options]
-exclude-newer = "2026-05-13T17:55:22.665481Z"
+exclude-newer = "2026-05-13T18:13:18.444679Z"
 exclude-newer-span = "P1W"
 
 [[package]]
@@ -65,7 +65,7 @@ wheels = [
 
 [[package]]
 name = "impall"
-version = "1.8.0"
+version = "1.8.1"
 source = { editable = "." }
 
 [package.dev-dependencies]
