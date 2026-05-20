@@ -2,6 +2,10 @@ version = 1
 revision = 3
 requires-python = ">=3.10"
 
+[options]
+exclude-newer = "2026-05-13T17:55:22.665481Z"
+exclude-newer-span = "P1W"
+
 [[package]]
 name = "colorama"
 version = "0.4.6"
@@ -61,7 +65,7 @@ wheels = [
 
 [[package]]
 name = "impall"
-version = "1.7.0"
+version = "1.8.0"
 source = { editable = "." }
 
 [package.dev-dependencies]
