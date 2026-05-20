@@ -119,7 +119,7 @@ Possible choices are: default, error, ignore, always, module, once
 https://docs.python.org/3/library/warnings.html#the-warnings-filter
 for more details."""
 
-_err = functools.partial(print, 'IMPALL ERROR', file=sys.stderr)
+_err = functools.partial(print, file=sys.stderr)
 
 
 class ImpAllTest(unittest.TestCase):
