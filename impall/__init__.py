@@ -119,6 +119,8 @@ Possible choices are: default, error, ignore, always, module, once
 https://docs.python.org/3/library/warnings.html#the-warnings-filter
 for more details."""
 
+_err = functools.partial(print, 'IMPALL ERROR', file=sys.stderr)
+
 
 class ImpAllTest(unittest.TestCase):
     CLEAR_SYS_MODULES = True
@@ -129,6 +131,7 @@ class ImpAllTest(unittest.TestCase):
     PATHS = None
     RAISE_EXCEPTIONS = False
     WARNINGS_ACTION = 'default'
+    VERBOSE = False
 
     @functools.cached_property
     def _exc(self) -> t.Callable[[t.Any], bool]:
@@ -146,25 +149,28 @@ class ImpAllTest(unittest.TestCase):
         self.assertTrue(successes or failures, 'No tests were found')
         expected = sorted(_split(self.FAILING))
 
-        failed = [(m, ex) for m, ex in failures if m not in expected]
-        failed_to_fail = [m for m in successes if m in expected]
+        failed = sorted((m, ex) for m, ex in failures if m not in expected)
+        succeeded = sorted(m for m in successes if m in expected)
 
-        if failed_to_fail:
-            print("Didn't fail when expected:", *sorted(failed_to_fail))
+        if self.VERBOSE:
+            for i, (module, ex) in enumerate(failed):
+                if i:
+                    _err()
+                _err(module + ':')
+                for line in ex.splitlines():
+                    if 'File "<' not in line:
+                        _err(' ', line)
 
-        first = True
-        for module, ex in failed:
-            if first:
-                first = False
-            else:
-                print()
-            print(module + ':')
-            for line in ex.splitlines():
-                if 'File "<' not in line:
-                    print(' ', line)
+        errors = []
+        if failed:
+            failures = ', '.join(m for (m, _ex) in failed)
+            errors.append(f'These modules failed to import: {failures}')
+        if succeeded:
+            successes = ', '.join(succeeded)
+            errors.append(f'These modules unexpectedly did import: {successes}')
 
-        self.assertTrue(not failed, 'Some tests failed')
-        self.assertTrue(not failed_to_fail, 'Some tests failed to fail')
+        if errors:
+            self.fail('\n'.join(errors))
 
     def impall(self) -> t.Tuple[t.List[str], t.List[t.Tuple[str, str]]]:
         successes: t.List[str] = []
@@ -333,13 +339,13 @@ def report() -> None:
 
     successes, failures = test_case.impall()
     if successes:
-        print('Successes', *successes, sep='\n  ')
-        print()
+        _err('Successes', *successes, sep='\n  ')
+        _err()
 
     if failures:
         fail = [f'{m} ({e})' for (m, e) in failures]
-        print('Failures', *fail, sep='\n  ', file=sys.stderr)
-        print(file=sys.stderr)
+        _err('Failures', *fail, sep='\n  ', file=sys.stderr)
+        _err(file=sys.stderr)
 
 
 def _parse_args() -> argparse.Namespace:
