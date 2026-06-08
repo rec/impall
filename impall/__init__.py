@@ -69,10 +69,11 @@ import importlib
 import os
 import sys
 import traceback
-import typing as t
 import unittest
 import warnings
+from collections.abc import Callable, Iterator, Sequence
 from types import ModuleType
+from typing import Any
 
 __author__ = 'Tom Ritchford <tom@swirly.com>'
 __all__ = 'ImpAllTest', 'path_to_import'
@@ -134,11 +135,11 @@ class ImpAllTest(unittest.TestCase):
     VERBOSE = False
 
     @functools.cached_property
-    def _exc(self) -> t.Callable[[t.Any], bool]:
+    def _exc(self) -> Callable[[Any], bool]:
         return _split_pattern(self.EXCLUDE, self.paths)
 
     @functools.cached_property
-    def _inc(self) -> t.Callable[[t.Any], bool]:
+    def _inc(self) -> Callable[[Any], bool]:
         if self.INCLUDE is None:
             return lambda x: True
         return _split_pattern(self.INCLUDE, self.paths)
@@ -172,12 +173,12 @@ class ImpAllTest(unittest.TestCase):
             self.fail('\n'.join(errors))
 
     @functools.cached_property
-    def paths(self) -> t.List[str]:
+    def paths(self) -> list[str]:
         return _split_colon(self.PATHS or path_to_import(os.getcwd())[0])
 
-    def impall(self) -> t.Tuple[t.List[str], t.List[t.Tuple[str, str]]]:
-        successes: t.List[str] = []
-        failures: t.List[t.Tuple[str, str]] = []
+    def impall(self) -> tuple[list[str], list[tuple[str, str]]]:
+        successes: list[str] = []
+        failures: list[tuple[str, str]] = []
 
         warnings.simplefilter(self.WARNINGS_ACTION)
         for file in self._all_imports(self.paths):
@@ -186,7 +187,7 @@ class ImpAllTest(unittest.TestCase):
         warnings.filters.pop(0)  # type: ignore[attr-defined]
         return successes, failures
 
-    def _all_imports(self, paths: t.Sequence[str]) -> t.Iterator[str]:
+    def _all_imports(self, paths: Sequence[str]) -> Iterator[str]:
         for path in paths:
             for directory, sub_dirs, files in os.walk(path):
                 if directory != path and not self._accept_dir(directory):
@@ -203,8 +204,8 @@ class ImpAllTest(unittest.TestCase):
     def _import(
         self,
         file: str,
-        successes: t.List[str],
-        failures: t.List[t.Tuple[str, str]],
+        successes: list[str],
+        failures: list[tuple[str, str]],
     ) -> None:
         root, module = path_to_import(file)
         path = file[:-3] if file.endswith('.py') else file
@@ -244,7 +245,7 @@ class ImpAllTest(unittest.TestCase):
 
 
 @functools.lru_cache
-def path_to_import(path: str) -> t.Tuple[str, str]:
+def path_to_import(path: str) -> tuple[str, str]:
     """
     Return a (path, module) pair that allows you to import the Python file or
     directory at location path
@@ -309,7 +310,7 @@ def _is_python_dir(path: str) -> bool:
     return os.path.exists(init) and not _is_ignored(path)
 
 
-def _split_colon(s: t.Union[str, t.Sequence[str]]) -> t.List[str]:
+def _split_colon(s: str | Sequence[str]) -> list[str]:
     if not s:
         return []
     if isinstance(s, str):
@@ -317,9 +318,7 @@ def _split_colon(s: t.Union[str, t.Sequence[str]]) -> t.List[str]:
     return list(s)
 
 
-def _split_pattern(
-    s: t.Union[str, t.Sequence[str]], paths: t.List[str]
-) -> t.Callable[[str], bool]:
+def _split_pattern(s: str | Sequence[str], paths: list[str]) -> Callable[[str], bool]:
     def matches(x: str, p: str) -> bool:
         parts = p.split('.')
         if all(s.isidentifier() for s in parts):
@@ -361,7 +360,7 @@ def report() -> None:
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=_USAGE)
     parser.add_argument('paths', nargs='*', default=[os.getcwd()])
-    kwds: t.Dict[str, t.Any]
+    kwds: dict[str, Any]
 
     for prop in PROPERTIES:
         default = getattr(ImpAllTest, prop)
