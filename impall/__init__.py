@@ -316,8 +316,7 @@ def _split(s: t.Union[str, t.Sequence[str]]) -> t.Sequence[str]:
 
 
 def _split_pattern(s: t.Union[str, t.Sequence[str]]) -> t.Callable[[t.Any], bool]:
-    parts = _split(s)
-    return lambda x: any(fnmatch.fnmatch(x, p) for p in parts)
+    return lambda x: any(fnmatch.fnmatch(x, p) for p in _split(s))
 
 
 def report() -> None:
