@@ -5,7 +5,7 @@
 Individually and separately imports each Python module or file in a project and
 reports warnings or failures at the end.
 
-### Running impall as a unit test
+## Running impall as a unit test
 
 Just inherit from the base class and it will
 automatically find and import each file, like this.
@@ -20,10 +20,12 @@ automatically find and import each file, like this.
 into your project if you like.)
 
 Tests are customized by overriding one of these following properties in the
-derived class.
+derived class
 
     CLEAR_SYS_MODULES, EXCLUDE, FAILING, INCLUDE, MODULES, PATHS,
     RAISE_EXCEPTIONS, and WARNINGS_ACTION.
+
+These properties have documentation strings in the code below.
 
 For example, to turn warnings into errors, set the property
 WARNINGS_ACTION in the derived class definition, like this.
@@ -36,29 +38,29 @@ WARNINGS_ACTION in the derived class definition, like this.
     $ impall.py --warnings_action=error
     $ impall.py -w error
 
-The properties INCLUDE, EXCLUDE, and PROJECT_PATH can be
-lists of strings, or a string separated with colons like
+## Selecting which files to test
+
+The properties INCLUDE, EXCLUDE, and PATHS can be
+lists of string entries, or a string separated with colons like
 'foo.mod1:foo.mod2'
 
-INCLUDE and EXCLUDE match modules, and also allow * as a wildcard.
-A single * matches any module segment, and a double ** matches any
-remaining segments. For example,
-
-INCLUDE = 'foo', 'bar.*', 'baz.**'
-
-* matches `foo` but not `foo.foo`
-* matches `bar.foo` but not `bar` or `bar.foo.bar`
-* matches `baz.foo` as well as `baz.foo.bar` but not `baz`
+Entries in INCLUDE or EXCLUDE match paths using fnmatch.fnmatch.
 
 ### A note on side-effects
 
-to reduce side-effects, `sys.modules` is restored to its original
+To reduce side-effects, `sys.modules` is restored to its original
 condition after each import if CLEAR_SYS_MODULES is true, but there might be
 other side-effects from loading some specific module.
 
 Use the EXCLUDE property to exclude modules with undesirable side
-effects. In general, it is probably a bad idea to have significant
-side-effects just from loading a module.
+effects.
+
+NOTE: many important modules like numpy and pytorch cannot be reloaded and you
+will get a clear exception if this happens.
+
+Setting CLEAR_SYS_MODULES = False will work.
+Perhaps this should have been the default, but I can't change it now. :-D
+
 """
 import argparse
 import fnmatch
@@ -82,18 +84,16 @@ This takes more time but finds more problems.
 """
 
 EXCLUDE = """
-A list of modules that will not be imported at all."""
+A list of patterns to be excluded. Uses fnmatch.fnmatch.
+"""
 
 FAILING = """
 A list of modules that must fail.
-
-This differs from EXCLUDE because modules in EXCLUDE aren't imported at
-all, but failing modules must exist, are imported, and then must fail
-when imported."""
+"""
 
 INCLUDE = """
-If non-empty, exactly the modules in the list will be loaded.
-This is not recursive - you need to list each module you want to include."""
+If non-empty, exactly these patterns are included. Uses fnmatch.fnmatch
+"""
 
 MODULES = """
 If MODULES is False, search all subdirectories.
@@ -124,7 +124,7 @@ _err = functools.partial(print, file=sys.stderr)
 
 class ImpAllTest(unittest.TestCase):
     CLEAR_SYS_MODULES = True
-    EXCLUDE = None
+    EXCLUDE = ()
     FAILING = ()
     INCLUDE = None
     MODULES = True
@@ -135,19 +135,18 @@ class ImpAllTest(unittest.TestCase):
 
     @functools.cached_property
     def _exc(self) -> t.Callable[[t.Any], bool]:
-        return _split_pattern(self.EXCLUDE or ())
+        return _split_pattern(self.EXCLUDE, self.paths)
 
     @functools.cached_property
     def _inc(self) -> t.Callable[[t.Any], bool]:
         if self.INCLUDE is None:
-            return lambda s: True
-        else:
-            return _split_pattern(self.INCLUDE)
+            return lambda x: True
+        return _split_pattern(self.INCLUDE, self.paths)
 
     def test_all(self) -> None:
         successes, failures = self.impall()
         self.assertTrue(successes or failures, 'No tests were found')
-        expected = sorted(_split(self.FAILING))
+        expected = sorted(_split_colon(self.FAILING))
 
         failed = sorted((m, ex) for m, ex in failures if m not in expected)
         succeeded = sorted(m for m in successes if m in expected)
@@ -172,13 +171,16 @@ class ImpAllTest(unittest.TestCase):
         if errors:
             self.fail('\n'.join(errors))
 
+    @functools.cached_property
+    def paths(self) -> t.List[str]:
+        return _split_colon(self.PATHS or path_to_import(os.getcwd())[0])
+
     def impall(self) -> t.Tuple[t.List[str], t.List[t.Tuple[str, str]]]:
         successes: t.List[str] = []
         failures: t.List[t.Tuple[str, str]] = []
-        paths = _split(self.PATHS or path_to_import(os.getcwd())[0])
 
         warnings.simplefilter(self.WARNINGS_ACTION)
-        for file in self._all_imports(paths):
+        for file in self._all_imports(self.paths):
             self._import(file, successes, failures)
 
         warnings.filters.pop(0)  # type: ignore[attr-defined]
@@ -307,16 +309,25 @@ def _is_python_dir(path: str) -> bool:
     return os.path.exists(init) and not _is_ignored(path)
 
 
-def _split(s: t.Union[str, t.Sequence[str]]) -> t.Sequence[str]:
+def _split_colon(s: t.Union[str, t.Sequence[str]]) -> t.List[str]:
     if not s:
         return []
     if isinstance(s, str):
         return s.split(':')
-    return s
+    return list(s)
 
 
-def _split_pattern(s: t.Union[str, t.Sequence[str]]) -> t.Callable[[t.Any], bool]:
-    return lambda x: any(fnmatch.fnmatch(x, p) for p in _split(s))
+def _split_pattern(
+    s: t.Union[str, t.Sequence[str]], paths: t.List[str]
+) -> t.Callable[[str], bool]:
+    def matches(x: str, p: str) -> bool:
+        parts = p.split('.')
+        if all(s.isidentifier() for s in parts):
+            pass  # TODO
+        return fnmatch.fnmatch(x, p)
+
+    segments = _split_colon(s)
+    return lambda x: any(matches(x, p) for p in segments)
 
 
 def report() -> None:
