@@ -70,6 +70,7 @@ import os
 import sys
 import threading
 import traceback
+import typing as t
 import unittest
 import warnings
 from collections.abc import Callable, Iterator, Sequence
@@ -126,22 +127,24 @@ _IMPORT_LOCK = threading.RLock()
 
 
 class ImpAllTest(unittest.TestCase):
-    CLEAR_SYS_MODULES = True
-    EXCLUDE = ()
-    FAILING = ()
-    INCLUDE = None
-    MODULES = True
-    PATHS = None
-    RAISE_EXCEPTIONS = False
-    WARNINGS_ACTION = 'default'
-    VERBOSE = False
+    CLEAR_SYS_MODULES: bool = True
+    EXCLUDE: str | Sequence[str] = ()
+    FAILING: str | Sequence[str] = ()
+    INCLUDE: str | Sequence[str] | None = None
+    MODULES: bool = True
+    PATHS: str | Sequence[str] | None = None
+    RAISE_EXCEPTIONS: bool = False
+    WARNINGS_ACTION: t.Literal[
+        'default', 'error', 'ignore', 'always', 'all', 'module', 'once'
+    ] = 'default'
+    VERBOSE: bool = False
 
     @functools.cached_property
-    def _exc(self) -> Callable[[Any], bool]:
+    def _exc(self) -> Callable[[str], bool]:
         return _split_pattern(self.EXCLUDE, self.paths)
 
     @functools.cached_property
-    def _inc(self) -> Callable[[Any], bool]:
+    def _inc(self) -> Callable[[str], bool]:
         if self.INCLUDE is None:
             return lambda x: True
         return _split_pattern(self.INCLUDE, self.paths)
@@ -252,7 +255,7 @@ class ImpAllTest(unittest.TestCase):
 
 
 @functools.lru_cache
-def path_to_import(path: str) -> tuple[str, str]:
+def path_to_import(path: str | os.PathLike[str]) -> tuple[str, str]:
     """
     Return a (path, module) pair that allows you to import the Python file or
     directory at location path
@@ -280,7 +283,7 @@ def path_to_import(path: str) -> tuple[str, str]:
     return path, '.'.join(reversed(parts))
 
 
-def import_file(path: str) -> ModuleType:
+def import_file(path: str | os.PathLike[str]) -> ModuleType:
     """
     Given a path to a file or directory, imports it from the correct root
     and returns the module
@@ -317,7 +320,7 @@ def _is_python_dir(path: str) -> bool:
     return os.path.exists(init) and not _is_ignored(path)
 
 
-def _split_colon(s: str | Sequence[str]) -> list[str]:
+def _split_colon(s: str | Sequence[str] | None) -> list[str]:
     if not s:
         return []
     if isinstance(s, str):
@@ -325,7 +328,9 @@ def _split_colon(s: str | Sequence[str]) -> list[str]:
     return list(s)
 
 
-def _split_pattern(s: str | Sequence[str], paths: list[str]) -> Callable[[str], bool]:
+def _split_pattern(
+    s: str | Sequence[str] | None, paths: list[str]
+) -> Callable[[str], bool]:
     def matches(x: str, p: str) -> bool:
         parts = p.split('.')
         if all(s.isidentifier() for s in parts):
