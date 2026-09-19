@@ -70,6 +70,14 @@ class PathToImportTest(unittest.TestCase):
             test_case.PATHS = 'one;two'
             assert test_case.paths == ['one', 'two']
 
+    def test_configuration_matches_windows_paths(self):
+        relative_path = os.path.relpath
+        with mock.patch(
+            'impall.os.path.relpath',
+            side_effect=lambda p, start: relative_path(p, start).replace('/', '\\'),
+        ):
+            PropertiesTest().test_all()
+
     def test_report_returns_failure_status_for_unexpected_imports(self):
         with mock.patch('impall._parse_args', return_value=Namespace(paths=[])):
             with mock.patch.object(

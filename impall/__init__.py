@@ -220,12 +220,12 @@ class ImpAllTest(unittest.TestCase):
         root, module = path_to_import(file)
         path = file[:-3] if file.endswith('.py') else file
 
-        rel = os.path.relpath(path, os.getcwd())
+        rel = os.path.relpath(path, os.getcwd()).replace('\\', '/')
         if not self._inc(rel) or self._exc(rel):
             return
 
         importlib.invalidate_caches()
-        file_path = os.path.relpath(file, os.getcwd())
+        file_path = os.path.relpath(file, os.getcwd()).replace('\\', '/')
 
         if self.CLEAR_SYS_MODULES:
             saved_modules = dict(sys.modules)
