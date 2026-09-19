@@ -79,6 +79,14 @@ class PathToImportTest(unittest.TestCase):
             ):
                 assert impall.report() == 1
 
+    def test_import_discovery_is_sorted(self):
+        test_case = impall.ImpAllTest()
+        paths = [str(pathlib.Path(__file__).parent / 'edge')]
+
+        imports = list(test_case._all_imports(paths))
+
+        assert imports == sorted(imports)
+
 
 class ImportFileTest(unittest.TestCase):
     def test_simple(self):

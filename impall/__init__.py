@@ -192,17 +192,21 @@ class ImpAllTest(unittest.TestCase):
 
     def _all_imports(self, paths: Sequence[str]) -> Iterator[str]:
         for path in paths:
+            imports: list[str] = []
             for directory, sub_dirs, files in os.walk(path):
+                sub_dirs.sort()
+                files.sort()
                 if directory != path and not self._accept_dir(directory):
                     sub_dirs.clear()
                     continue
 
                 if _is_python_dir(directory):
-                    yield directory
+                    imports.append(directory)
 
                 for f in files:
                     if f.endswith('.py') and not _is_ignored(f):
-                        yield os.path.join(directory, f)
+                        imports.append(os.path.join(directory, f))
+            yield from sorted(imports)
 
     def _import(
         self,
