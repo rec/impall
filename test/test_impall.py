@@ -2,6 +2,7 @@ import os
 import pathlib
 import unittest
 import warnings
+from argparse import Namespace
 from unittest import mock
 
 import impall
@@ -68,6 +69,15 @@ class PathToImportTest(unittest.TestCase):
             test_case = impall.ImpAllTest()
             test_case.PATHS = 'one;two'
             assert test_case.paths == ['one', 'two']
+
+    def test_report_returns_failure_status_for_unexpected_imports(self):
+        with mock.patch('impall._parse_args', return_value=Namespace(paths=[])):
+            with mock.patch.object(
+                impall.ImpAllTest,
+                'impall',
+                return_value=(['success.py'], [('failure.py', 'traceback')]),
+            ):
+                assert impall.report() == 1
 
 
 class ImportFileTest(unittest.TestCase):

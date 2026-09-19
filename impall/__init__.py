@@ -332,7 +332,7 @@ def _split_pattern(s: str | Sequence[str], paths: list[str]) -> Callable[[str], 
     return lambda x: any(matches(x, p) for p in segments)
 
 
-def report() -> None:
+def report() -> int:
     """Test all files in a directory from the command line"""
     args = _parse_args()
     test_case = ImpAllTest()
@@ -358,6 +358,11 @@ def report() -> None:
         fail = [f'{m} ({e})' for (m, e) in failures]
         _err('Failures', *fail, sep='\n  ', file=sys.stderr)
         _err(file=sys.stderr)
+
+    expected = set(_split_colon(test_case.FAILING))
+    unexpected_failures = [module for module, _ in failures if module not in expected]
+    unexpected_successes = [module for module in successes if module in expected]
+    return int(bool(unexpected_failures or unexpected_successes))
 
 
 def _parse_args() -> argparse.Namespace:
@@ -400,4 +405,4 @@ impall.py [path ...path]
 
 
 if __name__ == '__main__':
-    report()
+    sys.exit(report())
