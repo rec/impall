@@ -295,7 +295,7 @@ def import_file(path: str) -> ModuleType:
 _PROPERTIES = set(dir(ImpAllTest)) - set(dir(unittest.TestCase))
 PROPERTIES = sorted(a for a in _PROPERTIES if a.isupper())
 
-ENV_SEPARATOR = ':'
+ENV_SEPARATOR = os.pathsep
 
 _NO = 'NO_'
 
@@ -317,7 +317,7 @@ def _split_colon(s: str | Sequence[str]) -> list[str]:
     if not s:
         return []
     if isinstance(s, str):
-        return s.split(':')
+        return s.split(ENV_SEPARATOR)
     return list(s)
 
 

@@ -2,6 +2,7 @@ import os
 import pathlib
 import unittest
 import warnings
+from unittest import mock
 
 import impall
 
@@ -61,6 +62,12 @@ class PathToImportTest(unittest.TestCase):
         PropertiesTest().impall()
 
         assert warnings.filters == before
+
+    def test_configuration_uses_the_platform_path_separator(self):
+        with mock.patch('impall.ENV_SEPARATOR', ';'):
+            test_case = impall.ImpAllTest()
+            test_case.PATHS = 'one;two'
+            assert test_case.paths == ['one', 'two']
 
 
 class ImportFileTest(unittest.TestCase):
