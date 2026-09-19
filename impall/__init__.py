@@ -40,11 +40,11 @@ WARNINGS_ACTION in the derived class definition, like this.
 
 ## Selecting which files to test
 
-The properties INCLUDE, EXCLUDE, and PATHS can be
-lists of string entries, or a string separated with colons like
-'foo.mod1:foo.mod2'
+The properties INCLUDE, EXCLUDE, and PATHS can be lists of string entries, or
+a string separated with the platform path separator.
 
-Entries in INCLUDE or EXCLUDE match paths using fnmatch.fnmatch.
+Entries in INCLUDE or EXCLUDE match relative filesystem paths using
+fnmatch.fnmatch.
 
 ### A note on side-effects
 

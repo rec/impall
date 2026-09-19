@@ -34,19 +34,13 @@ WARNINGS_ACTION in the derived class definition, like this.
     $ impall --warnings_action=error
     $ impall -w error
 
-The properties INCLUDE, EXCLUDE, and PROJECT_PATH can be
+The properties INCLUDE, EXCLUDE, and PATHS can be
 lists of strings, or a string separated with colons like
 'foo.mod1:foo.mod2'
 
-INCLUDE and EXCLUDE match modules, and also allow * as a wildcard.
-A single * matches any module segment, and a double ** matches any
-remaining segments. For example,
-
-`INCLUDE = 'foo', 'bar.*', 'baz.**'`
-
-* matches `foo` but not `foo.foo`
-* matches `bar.foo` but not `bar` or `bar.foo.bar`
-* matches `baz.foo` as well as `baz.foo.bar` but not `baz`
+INCLUDE and EXCLUDE match relative filesystem paths using `fnmatch`. Use the
+platform path separator when providing a single string. For example,
+`INCLUDE = 'src/*.py'` matches Python files directly beneath `src`.
 
 ### A note on side-effects
 
