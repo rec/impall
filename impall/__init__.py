@@ -68,6 +68,7 @@ import functools
 import importlib
 import os
 import sys
+import threading
 import traceback
 import unittest
 import warnings
@@ -121,6 +122,7 @@ https://docs.python.org/3/library/warnings.html#the-warnings-filter
 for more details."""
 
 _err = functools.partial(print, file=sys.stderr)
+_IMPORT_LOCK = threading.RLock()
 
 
 class ImpAllTest(unittest.TestCase):
@@ -180,11 +182,12 @@ class ImpAllTest(unittest.TestCase):
         successes: list[str] = []
         failures: list[tuple[str, str]] = []
 
-        warnings.simplefilter(self.WARNINGS_ACTION)
-        for file in self._all_imports(self.paths):
-            self._import(file, successes, failures)
+        with _IMPORT_LOCK:
+            with warnings.catch_warnings():
+                warnings.simplefilter(self.WARNINGS_ACTION)
+                for file in self._all_imports(self.paths):
+                    self._import(file, successes, failures)
 
-        warnings.filters.pop(0)  # type: ignore[attr-defined]
         return successes, failures
 
     def _all_imports(self, paths: Sequence[str]) -> Iterator[str]:

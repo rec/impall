@@ -1,6 +1,7 @@
 import os
 import pathlib
 import unittest
+import warnings
 
 import impall
 
@@ -53,6 +54,13 @@ class PathToImportTest(unittest.TestCase):
         root = 'test/sub/one.py'
         actual = impall.path_to_import(root)
         assert actual == ('test/sub', 'one')
+
+    def test_impall_restores_warning_filters(self):
+        before = warnings.filters[:]
+
+        PropertiesTest().impall()
+
+        assert warnings.filters == before
 
 
 class ImportFileTest(unittest.TestCase):
